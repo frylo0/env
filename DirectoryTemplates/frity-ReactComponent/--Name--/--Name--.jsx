@@ -1,0 +1,2 @@
+-- From frity-creds: Use ./creds.js; --
+-- From ReactComponent: Use ./--Name--/--Name--.jsx; --
