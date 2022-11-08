@@ -10,7 +10,7 @@ printf "Script fodler: $context\n\n"
 
 
 function create_symlink() {
-	target_file="$path/$name"
+	target_file="$to_folder/$name"
 	echo "Linking: $name >> $target_file"
 	
 	if [[ -s $target_file ]]
@@ -20,13 +20,17 @@ function create_symlink() {
 		echo "  Removed"
 	fi
 
-	cd "$path" && ln -s "$context/$name" "$name"
+	cd "$to_folder" && ln -s "$context/$name" "$name"
 }
 
 
-path=~/Code && name="api.sh" && create_symlink
-path=~ && name="DirectoryTemplates" && create_symlink
-path=~/.config && name="nvim" && create_symlink
+to_folder=~/Code && name="api.sh" && create_symlink
+
+to_folder=~/Code && name="creds.sh" && create_symlink
+
+to_folder=~ && name="DirectoryTemplates" && create_symlink
+
+to_folder=~/.config && name="nvim" && create_symlink
 
 
 printf "\nSuccess!!!"
