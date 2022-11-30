@@ -4,7 +4,6 @@ source ~/Code/creds.sh
 
 export PS1="\u\[$(tput sgr0)\]\[$(tput bold)\]\[\033[38;5;251m\]@\[$(tput sgr0)\]\[\033[38;5;248m\]\h\[$(tput sgr0)\] \[$(tput sgr0)\]\[$(tput bold)\]\[\033[38;5;232m\]\T\[$(tput sgr0)\]\n\[$(tput sgr0)\]\[\033[38;5;215m\]\w\[$(tput sgr0)\]\n\[$(tput sgr0)\]\[\033[38;5;226m\]\W\[$(tput sgr0)\] \[$(tput bold)\]\\$\[$(tput sgr0)\] \[$(tput sgr0)\]"
 
-
 # For JoyDev TalkMe project and NPM
 #export NODE_OPTIONS=--openssl-legacy-provider
 
@@ -144,10 +143,8 @@ function cbd () {
     case $1 in
         "desktop") cd ~/Desktop ;;
         "downloads") cd ~/Downloads ;;
-        "localhost") cd /var/www ;;
-        "cloud") hdd && cd SWAP/cloud ;;
-        "talkme") cd /var/www/talkme-front-end ;;
         "code") cd ~/Code ;;
+        "env") cd ~/Code/env ;;
     esac
 }
 
