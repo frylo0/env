@@ -2,7 +2,7 @@
 
 
 this=$(realpath "$0")
-printf "Script path: $this\n"
+printf "\nScript path: $this\n"
 
 context=$(dirname $this)
 printf "Script fodler: $context\n\n"
@@ -24,6 +24,29 @@ function create_symlink() {
 }
 
 
+
+function install_deps() {
+   printf "\nInstalling dependecies...\n\n"
+
+   sudo apt-get install imwheel
+
+   printf "\nDeps have been installed!\n\n\n"
+}
+
+install_deps
+
+
+
+function after_party() {
+   printf "\n\n"
+   printf "Now you need to:\n"
+   printf "  * Add command \`imwheel\` to startup. Use \`imwheel -k -q\` to reset scroll speed.\n"
+   printf "  * Install DTL from https://github.com/fritylo/dtl\n"
+   printf "  * Install Nvim https://askubuntu.com/questions/430008/how-to-install-neovim-on-ubuntu\n"
+}
+
+
+
 to_folder=~/Code && name="api.sh" && create_symlink
 
 to_folder=~/Code && name="creds.sh" && create_symlink
@@ -32,6 +55,11 @@ to_folder=~ && name="DirectoryTemplates" && create_symlink
 
 to_folder=~/.config && name="nvim" && create_symlink
 
+to_folder=~ && name=".imwheelrc" && create_symlink
+
+
 
 printf "\nSuccess!!!"
+
+after_party
 cd $context
