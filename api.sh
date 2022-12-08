@@ -138,6 +138,17 @@ function vk-vpn() {
     sudo openvpn --config "$vpn_path" --auth-user-pass "$ovpn_pass_file"
 }
 
+function vk-npmrc() {
+    enabled_npmrc='/home/fritylo/.npmrc'
+    disabled_npmrc='/home/fritylo/._npmrc'
+
+    if [[ -f "$enabled_npmrc" ]]; then
+        mv "$enabled_npmrc" "$disabled_npmrc"
+    else 
+        mv "$disabled_npmrc" "$enabled_npmrc"
+    fi
+}
+
 function cbd () {
     # change bookmarked dir
     case $1 in
