@@ -144,8 +144,10 @@ function vk-npmrc() {
 
     if [[ -f "$enabled_npmrc" ]]; then
         mv "$enabled_npmrc" "$disabled_npmrc"
+        echo ".npmrc Disabled"
     else 
         mv "$disabled_npmrc" "$enabled_npmrc"
+        echo ".npmrc Enabled"
     fi
 }
 
