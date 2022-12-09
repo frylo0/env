@@ -151,6 +151,14 @@ function vk-npmrc() {
     fi
 }
 
+function vk-log-npm-start () {
+    NODE_DISABLE_COLOR='true' NO_COLOR='true' TERM=dumb npm start --color 2>&1 | tee log.txt
+}
+
+function vk-fswatch () {
+    fswatch -or ./dist | xargs -n1 -I{}  rsync -rlptzv --progress --delete  ./dist/* lfdev8:/home/f.nikonov/$(pwd | grep -o '[^/]*$')/dist
+}
+
 function cbd () {
     # change bookmarked dir
     case $1 in
