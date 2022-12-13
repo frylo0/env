@@ -2,10 +2,10 @@
 
 Run install script to push this repo to your system
 ```bash
-./INSTALL.sh
+make install
 ```
 
-Then run nvim and use command:
-```
-:PlugInstall
+To uninstall all symlinks run. *Attention!!! You need run install script before*
+```bash
+make uninstall
 ```
