@@ -29,6 +29,11 @@ alias gacm='ga . ; gcm'
 alias gr='git remote'
 alias pull='git pull'
 alias push='git push'
+alias chp='git cherry-pick'
+alias chpm='git cherry-pick -m 1'
+alias chps='git cherry-pick --skip'
+alias chpc='git cherry-pick --continue'
+function tagp() { git tag $1 && git push origin $1 }
 
 alias py='python3.10'
 alias mdtpl='py /media/feodoritiy/HDD/CODE/VS_PY/md_tpl/md_tpl.py'
