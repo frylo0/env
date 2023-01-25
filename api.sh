@@ -160,8 +160,16 @@ function vk-log-npm-start () {
     NODE_DISABLE_COLOR='true' NO_COLOR='true' TERM=dumb npm start --color 2>&1 | tee log.txt
 }
 
-function vk-fswatch () {
+function vk-fsw-resplash () {
     fswatch -or ./dist | xargs -n1 -I{}  rsync -rlptzv --progress --delete  ./dist/* lfdev8:/home/f.nikonov/$(pwd | grep -o '[^/]*$')/dist
+}
+
+function vk-fsw-whiteline () {
+    fswatch -or ./dist | xargs -n1 -I{}  rsync -rlptzv --progress --delete  ./dist/* lfdev8:/home/f.nikonov/whiteline/serve
+}
+
+function vk-start-respash() {
+    npm run copy && NODE_OPTIONS=--max-old-space-size=1048576 npx rollup -c --environment BUILD:development
 }
 
 function cbd () {
