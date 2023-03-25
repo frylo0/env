@@ -36,6 +36,10 @@ create_symlink \
 	--file-name '.imwheelrc' \
 	--target-folder ~
 
+create_symlink \
+	--file-name 'xonsh' \
+	--target-folder ~/.config
+
 printf "\nSuccess!!!"
 
 

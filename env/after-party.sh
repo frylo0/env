@@ -5,4 +5,5 @@ function after_party() {
    printf "  * Install DTL from https://github.com/fritylo/dtl\n"
    printf "  * Install Nvim https://askubuntu.com/questions/430008/how-to-install-neovim-on-ubuntu\n"
    printf "  * Run :PlugInstall in Nvim\n"
+   printf "  * Reload tour PC to apply Xonsh as default sheel\n"
 }
