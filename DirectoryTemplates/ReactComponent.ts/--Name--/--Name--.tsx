@@ -3,15 +3,15 @@ import classNames from 'classnames/bind';
 const cx = classNames.bind(styles);
 
 interface --Name--Props extends React.PropsWithChildren {
-   className?: string,
+	className?: string,
 };
 
 export const --Name--: React.FC<--Name--Props> = ({
-   className = '',
+	className = '',
 }) => {
-   return (
-      <div className={cx('--na-me--', className)}>
-
-      </div>
-   );
+	return (
+		<div className={cx('--na-me--', className)}>
+			
+		</div>
+	);
 };
