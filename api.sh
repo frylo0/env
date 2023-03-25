@@ -15,26 +15,26 @@ alias cd.='cd ..'
 alias cd..='cd ../..'
 alias cd...='cd ../../..'
 
+alias go='git checkout'
 alias gs='git status'
 alias ga='git add'
-alias ga.='git add .'
-alias gb='git branch'
-alias gbgo='git checkout -b'
-alias gc='git commit'
-alias gd='git diff'
-alias gh='git hist'
-alias go='git checkout'
-alias ghmxc='git log hist --max-count'
-alias gacm='ga . ; gcm'
-alias gr='git remote'
+alias branch='git branch'
+alias commit='git commit'
+alias merge='git merge'
 alias pull='git pull'
 alias push='git push'
-alias chp='git cherry-pick'
-alias chpm='git cherry-pick -m 1'
-alias chps='git cherry-pick --skip'
-alias chpc='git cherry-pick --continue'
-function tagp() { git tag $1 && git push origin $1 }
+alias stash='git stash'
+alias revert='git revert'
+alias remote='git remote'
+alias rebase='git rebase'
+alias chpick='git cherry-pick'
+alias chpickm='git cherry-pick -m 1'
+alias chpicks='git cherry-pick --skip'
+alias chpickc='git cherry-pick --continue'
 alias revoke='node ~/Code/utils/git-revoke/index.mjs'
+function tagp() { git tag $1 && git push origin $1 }
+function gop() { git checkout -b $1 && git push -u origin $1 }
+function gos() { git stash -u && git checkout $1 }
 
 alias py='python3.10'
 alias mdtpl='py /media/feodoritiy/HDD/CODE/VS_PY/md_tpl/md_tpl.py'
@@ -58,35 +58,9 @@ alias start-talkme='cd /var/www/talkme-front-end && sudo docker run -it talkme-f
 alias gm='/usr/local/bin/gm'
 
 
-function crcp() {
-    case $1 in
-        "-f") node ~/Desktop/dtl/dtl.mjs new frity-ReactComponent $2 ;;
-        "-j") node ~/Desktop/dtl/dtl.mjs new joydev-ReactComponent $2 ;;
-    esac
-}
-
-function crct() {
-    case $1 in
-        "-f") node ~/Desktop/dtl/dtl.mjs new frity-ReactComponentContainer $2 ;;
-        "-j") node ~/Desktop/dtl/dtl.mjs new joydev-ReactComponentContainer $2 ;;
-    esac
-}
-
-function srun() {
-   google-chrome-beta&
-   code&
-   sudo ~/Desktop/jVPN.sh&
-}
-
 function mcdir() {
     mkdir $1
     cd $1
-}
-
-function github() {
-    git remote add origin "https://$CREDS_GITHUB_LOGIN:$CREDS_GITHUB_PASSWORD@$1"
-    git branch -M master
-    git push -u origin master
 }
 
 function bootto () {
@@ -133,6 +107,8 @@ function windscribe-vpn() {
     esac
 }
 
+alias vk-browserstask='~/Downloads/BrowserStackLocal-linux-x64/BrowserStackLocal'
+
 function vk-vpn() {
     key=$1
     key_prefix="$CREDS_VK_VPN_KEY_PREFIX"
@@ -164,13 +140,15 @@ function vk-log-npm-start () {
 function vk-fsw-resplash () {
     fswatch -or ./dist | xargs -n1 -I{}  rsync -rlptzv --progress --delete  ./dist/* lfdev8:/home/f.nikonov/$(pwd | grep -o '[^/]*$')/dist
 }
-
 function vk-fsw-whiteline () {
-    fswatch -or ./dist | xargs -n1 -I{}  rsync -rlptzv --progress --delete  ./dist/* lfdev8:/home/f.nikonov/whiteline/serve
+    fswatch -or ./dist | xargs -n1 -I{}  rsync -rlptzv --progress --delete  ./dist/* lfdev8:/home/f.nikonov/serve
 }
 
 function vk-start-respash() {
     npm run copy && NODE_OPTIONS=--max-old-space-size=1048576 npx rollup -c --environment BUILD:development
+}
+function vk-start-whiteline() {
+    NODE_OPTIONS=--max-old-space-size=1048576 npx rollup -c --environment mode:development,browsers:both
 }
 
 function cbd () {
