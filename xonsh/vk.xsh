@@ -8,6 +8,10 @@ class VK:
         self.start = VKStart()
         self.fsw = VKFsw()
 
+        aliases['vk.vpn'] = lambda args: self.vpn(args[0])
+        aliases['vk.browserstack'] = lambda args: self.browserstack()
+        aliases['vk.npmrc'] = lambda args: self.npmrc()
+
     def vpn(self, otp):
         key = otp
         key_prefix = creds['vk']['key_prefix']
@@ -34,6 +38,10 @@ class VK:
 
 
 class VKStart:
+    def __init__(self):
+        aliases['vk.start.resplash'] = lambda args: self.resplash()
+        aliases['vk.start.whiteline'] = lambda args: self.whiteline()
+
     def resplash(self):
         npm run copy && $NODE_OPTIONS='--max-old-space-size=1048576' npx rollup -c --environment 'BUILD:development'
 
@@ -42,6 +50,10 @@ class VKStart:
 
 
 class VKFsw:
+    def __init__(self):
+        aliases['vk.fsw.resplash'] = lambda args: self.resplash()
+        aliases['vk.fsw.whiteline'] = lambda args: self.whiteline()
+
     def resplash(self):
         fswatch -or ./dist \
             | xargs '-n1' '-I{}' rsync -rlptzv --progress --delete \
@@ -53,4 +65,4 @@ class VKFsw:
                 ./dist/* f'lfdev8:/home/f.nikonov/serve'
 
 
-vk = VK()
+_vk = VK()
