@@ -37,10 +37,7 @@ def _gos(args):
 
 def _gom(args):
     branch = $(git rev-parse --abbrev-ref HEAD)
-
-    git checkout @(args[0]) \
-    && git pull \
-    && git merge --no-ff @(branch)
+    bash -c f'git checkout {args[0]} && git pull && git merge --no-ff {branch}'
 
 
 main()
