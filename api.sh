@@ -32,9 +32,15 @@ alias chpickm='git cherry-pick -m 1'
 alias chpicks='git cherry-pick --skip'
 alias chpickc='git cherry-pick --continue'
 alias revoke='node ~/Code/utils/git-revoke/index.mjs'
-function tagp() { git tag $1 && git push origin $1 }
-function gop() { git checkout -b $1 && git push -u origin $1 }
-function gos() { git stash -u && git checkout $1 }
+function tagp() {
+    git tag $1 && git push origin $1
+}
+function gop() {
+    git checkout -b $1 && git push -u origin $1
+}
+function gos() {
+    git stash -u && git checkout $1
+}
 
 alias py='python3.10'
 alias mdtpl='py /media/feodoritiy/HDD/CODE/VS_PY/md_tpl/md_tpl.py'

@@ -9,6 +9,7 @@ from phpv import *
 from git import *
 from prompt import *
 from cbd import *
+from nvm_fix import *
 
 from vk import *
 
@@ -132,7 +133,7 @@ def _windows(args):
             windows - booting to windows
     """, prefix='\n', extra_indent='    ')
 
-    need_help, = args
+    need_help = len(args) > 0 && args[0]
 
     if need_help == 'help':
         print(help)
