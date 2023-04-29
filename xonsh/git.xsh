@@ -19,6 +19,7 @@ def main():
     aliases['revoke'] = 'node ~/Code/utils/git-revoke/index.mjs'
 
     aliases['tagp'] = _tagp
+    aliases['renb'] = _renb
 
     aliases['gop'] = _gop
     aliases['gos'] = _gos
@@ -38,6 +39,12 @@ def _gos(args):
 def _gom(args):
     branch = $(git rev-parse --abbrev-ref HEAD)
     bash -c f'git checkout {args[0]} && git pull && git merge --no-ff {branch}'
+
+def _renb(args):
+	curr_name = args[0]
+	new_name = args[1]
+
+	git branch -m @(curr_name) @(new_name) && git push --set-upstream origin @(new_name) && git push -d origin @(curr_name)
 
 
 main()
