@@ -1,6 +1,7 @@
 import os
 
 from creds import *
+from core import env
 
 
 class VK:
@@ -13,6 +14,10 @@ class VK:
         aliases['vk.npmrc'] = lambda args: self.npmrc()
 
     def vpn(self, otp):
+        if (env.is_vpn):
+            print('🛑 Another VPN is enabled, abort')
+            return
+
         key = otp
         key_prefix = creds['vk']['key_prefix']
         login = creds['vk']['login']
@@ -41,12 +46,16 @@ class VKStart:
     def __init__(self):
         aliases['vk.start.resplash'] = lambda args: self.resplash()
         aliases['vk.start.whiteline'] = lambda args: self.whiteline()
+        aliases['vk.start.2promo'] = lambda args: self.IIpromo()
 
     def resplash(self):
         npm run copy && $NODE_OPTIONS='--max-old-space-size=1048576' npx rollup -c --environment 'BUILD:development'
 
     def whiteline(self):
         $NODE_OPTIONS='--max-old-space-size=1048576' npx rollup -c --environment 'mode:development,browsers:both'
+
+    def IIpromo(self):
+        nvm use && npm run build:dev
 
 
 class VKFsw:

@@ -1,21 +1,35 @@
 import os
 
+from core import env
+
 def _prompt():
+    global env
+
+    env.update()
+
     ___gradient_ = '{BACKGROUND_#222} {BACKGROUND_#333} {BACKGROUND_#444} {BACKGROUND_#555} '
     _gradient___ = ' {BACKGROUND_#444} {BACKGROUND_#333} {BACKGROUND_#222} {RESET} '
     time = '{#aaa}{localtime}'
     _I_ = ' {#aaa}│ '
     cwd = '{#70a5db}{cwd_dir}{BOLD_#4ca5ff}{cwd_base}'
     dollar = '{BOLD_CYAN}{prompt_end}'
-    node_ver = '{BOLD_INTENSE_GREEN}Node ' + $(node --version).strip()
+    node_ver = '{BOLD_#70bc29}🌿 ' + $(node --version).strip()
 
-    is_vpn_active = len($(ps -aux | grep 'openvpn').strip().split('\n')) > 1
-    vpn = '{BOLD_INTENSE_RED}VPN' if is_vpn_active else ''
+    vpn = '{BOLD_INTENSE_RED}🔒' if env.is_openvpn else ''
+    wg = '{BOLD_INTENSE_PURPLE}🐲 ' if env.is_wgvpn else ''
 
     is_npmrc = os.path.isfile('/home/fritylo/.npmrc')
     npmrc = '{BOLD_#ffa500}NPMRC' if is_npmrc else ''
 
-    warns = [ vpn, npmrc ]
+    git_username = $(git config user.name).strip()
+    git_person = ''
+
+    if git_username == 'fritylo':
+        git_person = '{BOLD_INTENSE_YELLOW}🧔 ' + git_username
+    else:
+        git_person = '{BOLD_INTENSE_YELLOW}🧝 ' + git_username
+
+    warns = [ vpn, wg, npmrc, git_person ]
     warns = filter(lambda item: item != '', warns)
     warns = '{BOLD_WHITE}, '.join(warns)
 

@@ -32,6 +32,15 @@ def help(title: str, help_text: str):
     ))
 
 
+def get_answer(question, validate_answer):
+    while True:
+        answer = input(question)
+        is_valid_answer = validate_answer(answer)
+
+        if is_valid_answer:
+            return answer
+
+
 class C:
     Header = '\033[95m'
     OkBlue = '\033[94m'
@@ -42,3 +51,30 @@ class C:
     End = '\033[0m'
     Bold = '\033[1m'
     Underline = '\033[4m'
+
+
+class Env:
+    is_vpn = False
+    is_openvpn = False
+    is_wgvpn = False
+
+
+    def __init__(self):
+        self.update()
+
+    def update(self):
+        self.is_openvpn = self.check_openvpn()
+        self.is_wgvpn = self.check_wgvpn()
+
+        self.is_vpn = self.is_openvpn or self.is_wgvpn
+
+
+    def check_openvpn(self):
+        return len($(ps -aux | grep 'openvpn').strip().split('\n')) > 1
+
+    def check_wgvpn(self):
+        wg_status = !(wg show)
+        return wg_status.returncode == 1
+
+    
+env = Env()

@@ -1,4 +1,6 @@
-from core import smart_indent, help
+from core import smart_indent, help, get_answer
+
+import os
 
 class Localhost:
     """Localhost Apache2 manager"""
@@ -12,11 +14,29 @@ class Localhost:
 
     
     def new(self, folder_name: str, site_url: str):
-        folder_path = f'/var/www/{folder_name}'
+        is_abs_path = folder_name.startswith('/')
+        folder_path = folder_name if is_abs_path else '/var/www/{folder_name}'
 
-        # Create folder
-        sudo mkdir @(folder_path)
-        sudo chmod -R 0777 @(folder_path)
+        is_dir_exists = os.path.isdir(folder_path)
+        need_create_folder = True
+
+        if is_dir_exists:
+            mode = get_answer(
+                f'(!) Folder "{folder_path}" exists.\n 1 - abort,\n 2 - recreate,\n 3 - use existing: ',
+                lambda answer: answer == '1' or answer == '2' or answer == '3'
+            )
+
+            if mode == '1':
+                return
+            elif mode == '2':
+                sudo rm -rf @(folder_path)
+            else:
+                need_create_folder = False
+
+        if need_create_folder:
+            # Create folder
+            sudo mkdir @(folder_path)
+            sudo chmod -R 0777 @(folder_path)
 
         # Update hosts
         echo -e f'\n# Site folder: {folder_path}\n127.0.0.1\t{site_url}' | sudo tee -a /etc/hosts

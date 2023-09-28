@@ -12,13 +12,17 @@ from cbd import *
 from nvm_fix import *
 
 from vk import *
+from xsolla import *
 
 from core import smart_indent
 
 
-$XONSH_SHOW_TRACEBACK = True
+# $XONSH_SHOW_TRACEBACK = True
 $COMPLETIONS_CONFIRM = True
 $XONSH_AUTOPAIR = True
+
+# Fix for root user warnings
+__import__('warnings').filterwarnings('ignore', 'There is no current event loop', DeprecationWarning, 'prompt_toolkit.application.application')
 
 # Coloured man page support
 # using 'less' env vars (format is '\E[<brightness>;<colour>m')
