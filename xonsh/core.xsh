@@ -41,6 +41,19 @@ def get_answer(question, validate_answer):
             return answer
 
 
+class Args:
+    args_list = ''
+
+    def __init__(self, args_list):
+        self.args_list = args_list
+
+    def get_options(self):
+        return [arg for arg in self.args_list if arg.startswith('--') or arg.startswith('-')]
+
+    def get_positionals(self):
+        return [arg for arg in self.args_list if not arg.startswith('--') and not arg.startswith('-')]
+
+
 class C:
     Header = '\033[95m'
     OkBlue = '\033[94m'
