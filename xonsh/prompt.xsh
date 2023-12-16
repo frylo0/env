@@ -21,10 +21,10 @@ def _prompt():
     is_npmrc = os.path.isfile('/home/fritylo/.npmrc')
     npmrc = '{BOLD_#ffa500}NPMRC' if is_npmrc else ''
 
-    git_username = $(git config user.name).strip()
+    git_username = env.git_local_username
     git_person = ''
 
-    if git_username == 'fritylo':
+    if git_username == env.git_global_username:
         git_person = '{BOLD_INTENSE_YELLOW}🧔 ' + git_username
     else:
         git_person = '{BOLD_INTENSE_YELLOW}🧝 ' + git_username

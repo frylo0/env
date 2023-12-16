@@ -71,6 +71,9 @@ class Env:
     is_openvpn = False
     is_wgvpn = False
 
+    git_local_username = ''
+    git_global_username = ''
+
 
     def __init__(self):
         self.update()
@@ -81,6 +84,11 @@ class Env:
 
         self.is_vpn = self.is_openvpn or self.is_wgvpn
 
+        git_info = self.get_git_info()
+
+        self.git_global_username = git_info['username']['global']
+        self.git_local_username = git_info['username']['local']
+
 
     def check_openvpn(self):
         return len($(ps -aux | grep 'openvpn').strip().split('\n')) > 1
@@ -88,6 +96,17 @@ class Env:
     def check_wgvpn(self):
         wg_status = !(wg show)
         return wg_status.returncode == 1
+
+    def get_git_info(self):
+        global_username = $(git config --global user.name).strip()
+        local_username = $(git config user.name).strip()
+
+        return {
+            "username": {
+                "global": global_username,
+                "local": local_username,
+            },
+        }
 
     
 env = Env()
