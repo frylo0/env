@@ -18,8 +18,10 @@ def _prompt():
     vpn = '{BOLD_INTENSE_RED}🔒' if env.is_openvpn else ''
     wg = '{BOLD_INTENSE_PURPLE}🐲 ' if env.is_wgvpn else ''
 
-    is_npmrc = os.path.isfile('/home/fritylo/.npmrc')
-    npmrc = '{BOLD_#ffa500}NPMRC' if is_npmrc else ''
+    npmrc = ''
+
+    if env.npmrc['is_current_profile']:
+        npmrc = '{BOLD_#ffea00}🔑 ' + env.npmrc['current_profile']
 
     git_username = env.git_local_username
     git_person = ''

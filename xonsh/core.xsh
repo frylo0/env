@@ -1,4 +1,5 @@
 import re
+import os
 
 def smart_indent(string: str, prefix = '', postfix = '', extra_indent = ''):
     lines = string.split('\n')
@@ -74,6 +75,8 @@ class Env:
     git_local_username = ''
     git_global_username = ''
 
+    npmrc = { 'current_profile': '', 'is_current_profile': False }
+
 
     def __init__(self):
         self.update()
@@ -88,6 +91,8 @@ class Env:
 
         self.git_global_username = git_info['username']['global']
         self.git_local_username = git_info['username']['local']
+
+        self.npmrc = self.get_npmrc_info()
 
 
     def check_openvpn(self):
@@ -106,6 +111,25 @@ class Env:
                 "global": global_username,
                 "local": local_username,
             },
+        }
+
+    def get_npmrc_info(self):
+        default_npmrc = os.path.expanduser('~/.npmrc')
+        is_default_exists = os.path.exists(default_npmrc)
+
+        current_profile = ''
+
+        if is_default_exists:
+            with open(default_npmrc, 'r') as file:
+                file_contents = file.read()
+                match = re.search(r'### profile: (.*)', file_contents)
+                current_profile = match.group(1) if match else ''
+
+        is_current_profile = is_default_exists and current_profile != ''
+
+        return {
+            "current_profile": current_profile,
+            "is_current_profile": is_current_profile,
         }
 
     
