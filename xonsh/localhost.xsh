@@ -34,9 +34,12 @@ class Localhost:
                 need_create_folder = False
 
         if need_create_folder:
+            current_user = $(whoami)
+
             # Create folder
             sudo mkdir @(folder_path)
-            sudo chmod -R 0777 @(folder_path)
+            sudo chown -R f'{current_user}:www-data' @(folder_path)
+            sudo chmod -R ug+rwx o-rwx @(folder_path)
 
         # Update hosts
         echo -e f'\n# Site folder: {folder_path}\n127.0.0.1\t{site_url}' | sudo tee -a /etc/hosts
