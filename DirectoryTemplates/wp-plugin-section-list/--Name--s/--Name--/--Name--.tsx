@@ -45,7 +45,7 @@ export const --Name--: React.FC<--Name--Props> = ({
 		<>
 			<Image
 				label="Лого клиента"
-				media={image}
+				value={image}
 				onChange={handleImageChange}
 				restrictions={{
 					aspectRatio: {
