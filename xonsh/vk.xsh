@@ -6,7 +6,7 @@ from core import env
 
 class VK:
     def __init__(self):
-        self.start = VKStart()
+        self.run = VKRun()
         self.fsw = VKFsw()
 
         aliases['vk.vpn'] = lambda args: self.vpn(args[0])
@@ -42,11 +42,12 @@ class VK:
             echo "VK .npmrc Enabled"
 
 
-class VKStart:
+class VKRun:
     def __init__(self):
-        aliases['vk.start.resplash'] = lambda args: self.resplash()
-        aliases['vk.start.whiteline'] = lambda args: self.whiteline()
-        aliases['vk.start.2promo'] = lambda args: self.IIpromo()
+        aliases['vk.run.resplash'] = lambda args: self.resplash()
+        aliases['vk.run.whiteline'] = lambda args: self.whiteline()
+        aliases['vk.run.2promo'] = lambda args: self.IIpromo()
+        aliases['vk.run.antares'] = lambda args: self.antares()
 
     def resplash(self):
         npm run copy && $NODE_OPTIONS='--max-old-space-size=1048576' npx rollup -c --environment 'BUILD:development'
@@ -57,11 +58,15 @@ class VKStart:
     def IIpromo(self):
         nvm use && npm run build:dev
 
+    def antares(self):
+        npx rollup --bundleConfigAsCjs -c --environment mode:development
+
 
 class VKFsw:
     def __init__(self):
         aliases['vk.fsw.resplash'] = lambda args: self.resplash()
         aliases['vk.fsw.whiteline'] = lambda args: self.whiteline()
+        aliases['vk.fsw.antares'] = lambda args: self.antares()
 
     def resplash(self):
         fswatch -or ./dist \
@@ -72,6 +77,11 @@ class VKFsw:
         fswatch -or ./dist \
             | xargs '-n1' '-I{}'  rsync -rlptzv --progress --delete \
                 ./dist/* f'lfdev8:/home/f.nikonov/serve'
+
+    def antares(self):
+        fswatch -or ./dist \
+            | xargs '-n1' '-I{}'  rsync -rlptzv --progress --delete \
+                ./dist/* f'lfdev8:/home/f.nikonov/antares/dist'
 
 
 _vk = VK()
