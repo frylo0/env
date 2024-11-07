@@ -13,6 +13,7 @@ from nvm_fix import *
 
 from vk import *
 from xsolla import *
+from wb import *
 
 from core import smart_indent, Args
 
