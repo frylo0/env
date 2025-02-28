@@ -1,2 +1,0 @@
--- From joydev-creds: Use ./creds.js; --
--- From ReactComponent.ts: Use ./--Name--/--Name--.tsx; --
