@@ -71,6 +71,7 @@ class Env:
     is_vpn = False
     is_openvpn = False
     is_wgvpn = False
+    is_amnezia = False
 
     git_local_username = ''
     git_global_username = ''
@@ -84,8 +85,9 @@ class Env:
     def update(self):
         self.is_openvpn = self.check_openvpn()
         self.is_wgvpn = self.check_wgvpn()
+        self.is_amnezia = self.check_amnezia()
 
-        self.is_vpn = self.is_openvpn or self.is_wgvpn
+        self.is_vpn = self.is_openvpn or self.is_wgvpn or self.is_amnezia
 
         git_info = self.get_git_info()
 
@@ -97,6 +99,10 @@ class Env:
 
     def check_openvpn(self):
         return len($(ps -aux | grep 'openvpn').strip().split('\n')) > 1
+
+    def check_amnezia(self):
+		status = $(ip a | grep amn0).strip()
+		return len(status) > 0
 
     def check_wgvpn(self):
         wg_status = !(wg show)

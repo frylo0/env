@@ -15,8 +15,13 @@ def _prompt():
     dollar = '{BOLD_CYAN}{prompt_end}'
     node_ver = '{BOLD_#70bc29}🌿 ' + $(node --version).strip()
 
-    vpn = '{BOLD_INTENSE_RED}🔒' if env.is_openvpn else ''
-    wg = '{BOLD_INTENSE_PURPLE}🐲 ' if env.is_wgvpn else ''
+    vpn_openvpn = '{BOLD_INTENSE_RED}🔒' if env.is_openvpn else ''
+    vpn_amnezia = '{BOLD_INTENSE_RED}🧿' if env.is_amnezia else ''
+    vpn_wireguard = '{BOLD_INTENSE_PURPLE}🐲' if env.is_wgvpn else ''
+    
+    vpn = [ vpn_wireguard, vpn_openvpn, vpn_amnezia ]
+    vpn = filter(lambda item: item != '', vpn)
+    vpn = ', '.join(vpn)
 
     npmrc = ''
 
@@ -31,7 +36,7 @@ def _prompt():
     else:
         git_person = '{BOLD_INTENSE_YELLOW}🧝 ' + git_username
 
-    warns = [ vpn, wg, npmrc, git_person ]
+    warns = [ vpn, npmrc, git_person ]
     warns = filter(lambda item: item != '', warns)
     warns = '{BOLD_WHITE}, '.join(warns)
 
