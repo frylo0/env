@@ -234,7 +234,7 @@ def _bootto(args):
     elif system == 'lin':
         sudo grub-reboot 0 && sudo reboot
     elif system == 'win':
-        sudo grub-reboot 2 && sudo reboot
+        sudo grub-reboot 4 && sudo reboot
 
 
 def _windows(args):
