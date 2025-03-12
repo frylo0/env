@@ -70,14 +70,20 @@ class WBDeploy:
         duration_build = durations.get('build') or '9m'
         duration_deploy = durations.get('deploy') or '5m'
 
-        echo f'\n\n[{now}] Wait {duration_ci_check} + {duration_ci_gen} + {duration_build}...' \
-        && sleep @(duration_ci_check) \
-        && sleep @(duration_ci_gen) \
-        && sleep @(duration_build) \
-        && curl -s -X POST f"{tg_api}{tg_token}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d f'{{ "chat_id": "{tg_chat_id}", "text": "🧱 *Build* finished ({host_name})", "parse_mode": "Markdown" }}' \
-        && echo f'\n\n[{now}] Wait {duration_deploy}...' \
+        build_failed = True
+
+        while build_failed:
+            echo f'\n\n[{now}] Wait {duration_ci_check} + {duration_ci_gen} + {duration_build}...' \
+            && sleep @(duration_ci_check) \
+            && sleep @(duration_ci_gen) \
+            && sleep @(duration_build) \
+            && curl -s -X POST f"{tg_api}{tg_token}/sendMessage" \
+                -H "Content-Type: application/json" \
+                -d f'{{ "chat_id": "{tg_chat_id}", "text": "🧱 *Build* finished ({host_name})", "parse_mode": "Markdown" }}'
+
+            build_failed = input('\n\nBuild succeed? (y/n): ').strip().lower() != 'y'
+
+        echo f'\n\n[{now}] Wait {duration_deploy}...' \
         && sleep @(duration_deploy) \
         && curl -s -X POST f"{tg_api}{tg_token}/sendMessage" \
             -H "Content-Type: application/json" \
