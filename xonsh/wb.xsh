@@ -1,8 +1,10 @@
 import os
+import sys
 import datetime
+import subprocess
 
 from creds import *
-from core import env
+from core import env, Args, help
 
 
 class WB:
@@ -15,22 +17,25 @@ class WB:
         if (env.is_vpn):
             print('🛑 Another VPN is enabled, abort')
             return
-        
-        login = creds['wb']['vpn_login']
-        password = creds['wb']['vpn_pass']
-        
-        vpn_path = os.path.expanduser('~/Downloads/wb.ovpn')
-        vpn_auth_file = os.path.expanduser('~/wb-vpn-auth.txt')
-        
-        echo f'{password}' > @(vpn_auth_file)
-        sudo openvpn --config @(vpn_path) --askpass @(vpn_auth_file)
+
+        try:
+            nmcli con up id WB
+            print("\nVPN is up. Press Ctrl+C to disconnect...")
+
+            $RAISE_SUBPROC_ERROR = True
+            while True:
+                sleep 3600
+
+        except (subprocess.CalledProcessError):
+            $RAISE_SUBPROC_ERROR = False
+            nmcli con down id WB
 
 
 class WBDeploy:
     def __init__(self):
-        aliases['wb.deploy.prod'] = lambda args: self.prod()
-        aliases['wb.deploy.stage'] = lambda args: self.stage()
-        aliases['wb.deploy.feat'] = lambda args: self.feat()
+        aliases['wb.deploy.prod'] = lambda args: self.prod(args)
+        aliases['wb.deploy.stage'] = lambda args: self.stage(args)
+        aliases['wb.deploy.feat'] = lambda args: self.feat(args)
 
     def _exists_branch(self, branch_name):
         return $(git rev-parse --verify f'{branch_name}') != ''
@@ -58,7 +63,7 @@ class WBDeploy:
 
         git checkout @(current_branch)
 
-    def _two_step_notify(self, host_name, durations):
+    def _two_step_notify(self, host_name, durations, skip_build_confirm = False):
         tg_token = creds['personal']['telegramBot']['token']
         tg_api = creds['personal']['telegramBot']['api']
         tg_chat_id = creds['personal']['telegramBot']['chats']['notify']
@@ -81,7 +86,10 @@ class WBDeploy:
                 -H "Content-Type: application/json" \
                 -d f'{{ "chat_id": "{tg_chat_id}", "text": "🧱 *Build* finished ({host_name})", "parse_mode": "Markdown" }}'
 
-            build_failed = input('\n\nBuild succeed? (y/n): ').strip().lower() != 'y'
+            if skip_build_confirm:
+                build_failed = False
+            else:
+                build_failed = input('\n\nBuild succeed? (y/n): ').strip().lower() != 'y'
 
         echo f'\n\n[{now}] Wait {duration_deploy}...' \
         && sleep @(duration_deploy) \
@@ -89,33 +97,67 @@ class WBDeploy:
             -H "Content-Type: application/json" \
             -d f'{{ "chat_id": "{tg_chat_id}", "text": "🚀 *Deploy* finished ({host_name})", "parse_mode": "Markdown" }}' \
         && echo f'\n\n[{now}] Success!'
+    
+    def _get_options(self, args):
+        options = Args(args).get_options()
 
-    def prod(self):
-        main_branch = self._get_main_branch()
+        return {
+            'is_notify_only': '--notify' in options,
+            'is_help': '--help' in options,
+        }
+    
+    def _print_help(self, title, options):
+        if (options['is_help']):
+            help(title, """
+                Options:
+                    --notify - only send notifies without actual deployment
+                    --help   - prints this message
+            """)
+            return True
+
+    def prod(self, args):
+        options = self._get_options(args)
+
+        if (self._print_help('wb.deploy.prod', options)):
+            return
+            
         last_tag = self._get_last_tag()
+
+        print('Curr tag:', last_tag, '\n')
 
         tag_name = input('Tag name: ')
         tag_message = input('Tag description: ')
 
-        git checkout @(main_branch) \
-        && git pull \
-        && git tag -a @(tag_name) -m @(tag_message) \
-        && git push --tags
+        if (not options['is_notify_only']):
+            git tag -a @(tag_name) -m @(tag_message) \
+            && git push --tags
 
         self._two_step_notify('prod', { 'deploy': '5m' })
 
-    def stage(self):
+    def stage(self, args):
+        options = self._get_options(args)
+
+        if (self._print_help('wb.deploy.stage', options)):
+            return
+
         release_branch = input('Release branch name: ')
-        current_branch = self._get_current_branch()
 
-        self._checkout_or_merge_then_push(release_branch)
-        self._two_step_notify(f'{release_branch}', { 'deploy': '3m' })
+        if (not options['is_notify_only']):
+            self._checkout_or_merge_then_push(release_branch)
+
+        self._two_step_notify(f'{release_branch}', { 'deploy': '3m' }, True)
     
-    def feat(self):
-        feature_branch = input('Feature branch name: ')
-        current_branch = self._get_current_branch()
+    def feat(self, args):
+        options = self._get_options(args)
 
-        self._checkout_or_merge_then_push(feature_branch)
+        if (self._print_help('wb.deploy.feat', options)):
+            return
+            
+        feature_branch = input('Feature branch name: ')
+
+        if (not options['is_notify_only']):
+            self._checkout_or_merge_then_push(feature_branch)
+            
         self._two_step_notify(f'{feature_branch}', { 'deploy': '3m' })
 
 

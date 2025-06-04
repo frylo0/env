@@ -17,9 +17,8 @@ def _prompt():
 
     vpn_openvpn = '{BOLD_INTENSE_RED}🔒' if env.is_openvpn else ''
     vpn_amnezia = '{BOLD_INTENSE_RED}🧿' if env.is_amnezia else ''
-    vpn_wireguard = '{BOLD_INTENSE_PURPLE}🐲' if env.is_wgvpn else ''
     
-    vpn = [ vpn_wireguard, vpn_openvpn, vpn_amnezia ]
+    vpn = [ vpn_openvpn, vpn_amnezia ]
     vpn = filter(lambda item: item != '', vpn)
     vpn = ', '.join(vpn)
 
