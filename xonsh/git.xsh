@@ -1,5 +1,7 @@
 # vim: expandtab
 
+import time
+
 def main():
     aliases['go'] = 'git checkout'
     aliases['gs'] = 'git status'
@@ -30,6 +32,7 @@ def main():
     aliases['gos'] = _gos
     aliases['gom'] = _gom
     aliases['goml'] = _goml
+    aliases['goms'] = _goms
 
     aliases['reprune'] = _reprune
 
@@ -51,6 +54,40 @@ def _gom(args):
 def _goml(args):
     branch = $(git rev-parse --abbrev-ref HEAD)
     bash -c f'git checkout {args[0]} && git merge --no-ff {branch}'
+
+def _goms(args):
+    timestamp = int(time.time())
+
+    target_branch = args[0]
+    curr_branch = $(git rev-parse --abbrev-ref HEAD)
+    backup_branch = f'{curr_branch}-backup-{timestamp}'
+    
+    git checkout @(target_branch) && git pull
+
+    if __xonsh__.last.rtn != 0:
+        print(f'\nError: Unable to checkout or pull `{target_branch}`')
+        return
+    
+    git checkout @(curr_branch) \
+    && git checkout -b @(backup_branch) \
+    && git checkout @(curr_branch) \
+    && git reset --soft $(git merge-base master f'{curr_branch}') \
+    && git commit -m @(input('\nCommit message: '))
+
+    if __xonsh__.last.rtn != 0:
+        print(f'\nError: Failed squash')
+        return
+
+    git checkout @(target_branch) \
+    && git merge --no-ff @(curr_branch) \
+    && git branch -D @(curr_branch) \
+    && git push -d origin @(curr_branch) \
+    && git branch -D @(backup_branch)
+
+    if __xonsh__.last.rtn != 0:
+        print(f'\nError: Failed merge or branch cleanup')
+        return
+
 
 def _creb(args):
     name = args[0]
