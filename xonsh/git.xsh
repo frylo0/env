@@ -39,10 +39,16 @@ def main():
 
 def _tagp(args): 
     git tag @(args[0]) && git push origin @(args[0])
+
+    
+def _exists_branch(branch_name):
+    return $(git rev-parse --verify f'{branch_name}') != ''
     
 
 def _gop(args): 
-    git checkout -b @(args[0]) && git push -u origin @(args[0])
+    if not _exists_branch(args[0]):
+        git checkout -b @(args[0])   
+    git push -u origin @(args[0])
 
 def _gos(args):
     git stash -u && git checkout @(args[0])

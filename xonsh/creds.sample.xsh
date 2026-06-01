@@ -19,5 +19,7 @@ creds = {
     'wb': {
 		'vpn_login': '',
 		'vpn_pass': '',
+        'user_name': '',
+        'user_email': '',
 	},
 }

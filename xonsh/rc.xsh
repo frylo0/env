@@ -46,7 +46,8 @@ def apply_aliases():
     aliases['cd..'] = 'cd ../..'
     aliases['cd...'] = 'cd ../../..'
 
-    aliases['py'] = 'python3.10'
+    aliases['py'] = 'python3'
+    aliases['pip'] = 'pip3'
     aliases['mdtpl'] = 'py /media/feodoritiy/HDD/CODE/VS_PY/md_tpl/md_tpl.py'
     aliases['dtl'] = 'node ~/Code/utils/dtl/dtl.mjs'
 

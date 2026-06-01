@@ -11,8 +11,8 @@ set copyindent      " copy indent from the previous line
 call plug#begin()
 
 " Tag surround replacer by <cs>
-Plug 'https://github.com/tpope/vim-surround.git'
-Plug 'https://github.com/tpope/vim-repeat.git'
+"Plug 'https://github.com/tpope/vim-surround.git'
+"Plug 'https://github.com/tpope/vim-repeat.git'
 
 call plug#end()
 " }}} Plugin Manager

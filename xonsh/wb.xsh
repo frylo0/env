@@ -12,6 +12,7 @@ class WB:
         self.deploy = WBDeploy()
 
         aliases['wb.vpn'] = lambda args: self.vpn()
+        aliases['wb.git_repo_sign'] = lambda args: self.git_repo_sign()
 
     def vpn(self):
         if (env.is_vpn):
@@ -19,7 +20,7 @@ class WB:
             return
 
         try:
-            nmcli con up id WB
+            nmcli con up id wb2026
             print("\nVPN is up. Press Ctrl+C to disconnect...")
 
             $RAISE_SUBPROC_ERROR = True
@@ -28,7 +29,21 @@ class WB:
 
         except (subprocess.CalledProcessError):
             $RAISE_SUBPROC_ERROR = False
-            nmcli con down id WB
+            nmcli con down id wb2026
+
+    def git_repo_sign(self):
+        wb_username = creds['wb']['user_name']
+        wb_email = creds['wb']['user_email']
+
+        git config '--local' core.sshCommand "ssh -i ~/.ssh/wb-gitlab -F /dev/null"
+
+        git config '--local' user.signingKey "~/.ssh/wb-gitlab.pub"
+        git config '--local' user.name @(wb_username)
+        git config '--local' user.email @(wb_email)
+
+        git config '--local' '--bool' commit.gpgsign true
+
+        git config '--local' gpg.format ssh
 
 
 class WBDeploy:
