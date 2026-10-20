@@ -145,7 +145,7 @@ function createEventHandler({ getSession, sendNotification, info, reportError })
     }
 
     info("completion accepted for primary session")
-    void sendNotification("done")
+    await sendNotification("done")
   }
 
   return async function handleEvent(input) {
@@ -159,7 +159,7 @@ function createEventHandler({ getSession, sendNotification, info, reportError })
         return
       }
       info("permission event matched perm notification")
-      void sendNotification("perm")
+      await sendNotification("perm")
       return
     }
 
@@ -169,7 +169,17 @@ function createEventHandler({ getSession, sendNotification, info, reportError })
         return
       }
       info("question event matched ask notification")
-      void sendNotification("ask")
+      await sendNotification("ask")
+      return
+    }
+
+    if (event?.type === "form.created" && data.form?.metadata?.kind === "question") {
+      if (!await claimEvent(event.id, reportError)) {
+        info("duplicate question form ignored")
+        return
+      }
+      info("question form matched ask notification")
+      await sendNotification("ask")
       return
     }
 
@@ -279,7 +289,7 @@ async function setupV2(context) {
     reportError: runtime.reportError,
   })
 
-  void (async () => {
+  const subscriptionTask = (async () => {
     try {
       for await (const event of context.event.subscribe({ signal: controller.signal })) {
         await handleEvent(event)
@@ -290,9 +300,10 @@ async function setupV2(context) {
     }
   })()
 
-  return () => {
+  return async () => {
     runtime.info("cleanup started")
     controller.abort()
+    await subscriptionTask
     runtime.dispose()
     runtime.info("cleanup finished")
   }

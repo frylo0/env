@@ -1,5 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import { randomUUID } from "node:crypto"
 import plugin, { notificationUrl } from "./index.js"
 
 const config = {
@@ -37,8 +38,9 @@ async function withFetch(fetchMock, run) {
 }
 
 let nextEventID = 0
+const testRunID = randomUUID()
 const event = (type, data = {}) => ({
-  id: `evt_test_${++nextEventID}`,
+  id: `evt_test_${testRunID}_${++nextEventID}`,
   type,
   data,
   location: { directory: "/project" },
@@ -57,7 +59,7 @@ test("encodes topic and retains server path", () => {
 test("routes v2 question and permission events to distinct messages", async () => {
   const harness = makeContext({
     events: [
-      event("question.v2.asked"),
+      event("form.created", { form: { id: "q1", sessionID: "primary", metadata: { kind: "question" } } }),
       event("permission.v2.asked"),
       event("session.idle", { sessionID: "primary" }),
     ],
@@ -68,9 +70,22 @@ test("routes v2 question and permission events to distinct messages", async () =
   }, async () => {
     const cleanup = await plugin.setup(harness.context)
     await new Promise((resolve) => setImmediate(resolve))
-    cleanup()
+    await cleanup()
   })
   assert.deepEqual(harness.notifications, ["A", "P"])
+})
+
+test("ignores non-question forms", async () => {
+  const harness = makeContext({ events: [event("form.created", { form: { id: "f1", sessionID: "s", metadata: { kind: "other" } } })] })
+  await withFetch(async (_, request) => {
+    harness.notifications.push(request.body)
+    return { ok: true, status: 200 }
+  }, async () => {
+    const cleanup = await plugin.setup(harness.context)
+    await new Promise((resolve) => setImmediate(resolve))
+    await cleanup()
+  })
+  assert.deepEqual(harness.notifications, [])
 })
 
 test("uses v2 terminal execution events and notifies primary sessions only once", async () => {
@@ -92,7 +107,7 @@ test("uses v2 terminal execution events and notifies primary sessions only once"
   }, async () => {
     const cleanup = await plugin.setup(harness.context)
     await new Promise((resolve) => setImmediate(resolve))
-    cleanup()
+    await cleanup()
   })
   assert.deepEqual(harness.notifications, ["D"])
 })
@@ -109,8 +124,8 @@ test("only the plugin instance matching the event location sends", async () => {
     const disposeOutside = await plugin.setup(outside.context)
     const disposeMatching = await plugin.setup(matching.context)
     await new Promise((resolve) => setImmediate(resolve))
-    disposeOutside()
-    disposeMatching()
+    await disposeOutside()
+    await disposeMatching()
   })
   assert.deepEqual(outside.notifications, [])
   assert.deepEqual(matching.notifications, ["D"])
@@ -126,7 +141,7 @@ test("uses token from environment and reports request failures", async () => {
   }, async () => {
     const cleanup = await plugin.setup(harness.context)
     await new Promise((resolve) => setImmediate(resolve))
-    cleanup()
+    await cleanup()
   })
   if (originalToken === undefined) delete process.env.NTFY_TOKEN
   else process.env.NTFY_TOKEN = originalToken
@@ -146,7 +161,7 @@ test("reports invalid URL and HTTP response errors", async () => {
   await withFetch(async () => ({ ok: false, status: 401, statusText: "Unauthorized" }), async () => {
     const cleanup = await plugin.setup(failedResponse.context)
     await new Promise((resolve) => setImmediate(resolve))
-    cleanup()
+    await cleanup()
   })
   assert.ok(failedResponse.logs.some((entry) => entry.message.includes("HTTP 401 Unauthorized")))
 })
@@ -156,7 +171,7 @@ test("lifecycle info logs event and delivery path without topic or message", asy
   await withFetch(async () => ({ ok: true, status: 200 }), async () => {
     const cleanup = await plugin.setup(harness.context)
     await new Promise((resolve) => setImmediate(resolve))
-    cleanup()
+    await cleanup()
   })
   const output = harness.logs.map((entry) => entry.message).join("\n")
   assert.match(output, /runtime initialized/)
