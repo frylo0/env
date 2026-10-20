@@ -1,0 +1,30 @@
+{
+  "$schema": "https://opencode.ai/v2/cli.json",
+  "animations": true,
+  "session": {
+    "scrollbar": true,
+    "thinking": "hide",
+    "markdown": "rendered",
+    "grouping": "none",
+    "sidebar": "auto",
+    "permissions": "prompt"
+  },
+  "tabs": {
+    "mode": "on",
+    "layout": "horizontal"
+  },
+  "attention": {
+    "volume": 0.5,
+    "notifications": true,
+    "sound": true
+  },
+  "theme": {
+    "name": "flexoki"
+  },
+  "diffs": {
+    "view": "auto"
+  },
+  "terminal": {
+    "copy": "select"
+  }
+}
