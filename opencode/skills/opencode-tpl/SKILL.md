@@ -55,7 +55,7 @@ rm <name> [--yes]            delete a template (asks for confirmation unless --y
 merge --check <name> <target>  report conflicts; exit 1 if any
 merge --apply <name> <target> --resolve '<path->choice map>'
                                write the merged config, resolving conflicts
-sync <name> <target> [--resolve '<path->choice map>']
+pull <name> <target> [--resolve '<path->choice map>']
                                update an existing project from a changed template
 apply <name> <target> [--resolve '<path->choice map>']
                                merge, then copy secrets/ into target config dir's secrets/
@@ -69,13 +69,13 @@ For a directory the config is resolved as `.opencode/opencode.jsonc` →
 
 Conflict choices per path: `keep` (project wins), `take` (template wins), `abort`.
 
-## Syncing an updated template
+## Pulling an updated template
 
-Use `sync <name> <target>` when the stored template has changed and you want to
+Use `pull <name> <target>` when the stored template has changed and you want to
 bring an existing project's config up to date. It uses the same deep-merge and
 conflict resolution as `merge --apply`: template keys missing from the project
 are added, project-only keys are retained, and differing values require an
-explicit choice. Unlike `apply`, `sync` does not copy secrets or modify `.gitignore`.
+explicit choice. Unlike `apply`, `pull` does not copy secrets or modify `.gitignore`.
 
 ## Applying a template
 

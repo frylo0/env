@@ -490,7 +490,7 @@ Usage:
   tpl.mjs rm <name> [--yes]
   tpl.mjs merge --check <name> <target>
   tpl.mjs merge --apply <name> <target> --resolve '<json path→choice map>'
-  tpl.mjs sync <name> <target> [--resolve '<json path→choice map>']
+  tpl.mjs pull <name> <target> [--resolve '<json path→choice map>']
   tpl.mjs apply <name> <target> [--resolve '<json path→choice map>']
   tpl.mjs push <name> <target>
 
@@ -542,10 +542,10 @@ function main() {
     console.log(`Wrote merged config to ${outFile}`);
     return 0;
   }
-  if (cmd === 'sync') {
+  if (cmd === 'pull') {
     const name = argv[1];
     const target = argv[2];
-    if (!name || !target) die("Usage: tpl.mjs sync <name> <target> [--resolve '<json path→choice map>']");
+    if (!name || !target) die("Usage: tpl.mjs pull <name> <target> [--resolve '<json path→choice map>']");
     const tplJson = readJsonc(path.join(ensureTemplate(name), 'opencode.jsonc'));
     const outFile = resolveTargetConfig(target);
     const targetJson = readJsonc(outFile) || {};
@@ -554,7 +554,7 @@ function main() {
     const merged = runApply(tplJson, targetJson, resolveJson);
     if (typeof merged === 'number') return merged;
     writeJsonc(outFile, merged);
-    console.log(`Synced template "${name}" to ${outFile}`);
+    console.log(`Pulled template "${name}" to ${outFile}`);
     return 0;
   }
   if (cmd === 'apply') {
