@@ -390,6 +390,82 @@ function copySecrets(name, configPath) {
   return files;
 }
 
+function parseResolveMap(resolveJson, flag) {
+  if (resolveJson == null || resolveJson.trim() === '') return {};
+  try {
+    return JSON.parse(resolveJson);
+  } catch (e) {
+    die(`${flag} must be valid JSON: ${e.message}`);
+  }
+}
+
+function listSkillNames(dir) {
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return [];
+  return fs.readdirSync(dir).filter((n) => /^[A-Za-z0-9._-]+$/.test(n));
+}
+
+function reportSkillClashes(srcDir, destDir, names) {
+  for (const n of names) {
+    console.log(`skill ${n} | existing=${path.join(destDir, n)} | incoming=${path.join(srcDir, n)}`);
+  }
+}
+
+/**
+ * Copy `srcDir`'s top-level skills into `destDir`. A skill whose name already
+ * exists at the destination is a **clash** and needs an explicit choice
+ * (`keep` | `take` | `abort`) supplied via a resolve map. Skills are ordinary
+ * committed content, so this never touches `.gitignore`.
+ *
+ * Returns `{ copied, aborted, unresolved }`:
+ *  - `unresolved` — clashing names missing from the resolve map (caller must stop)
+ *  - `aborted`    — names the user chose `abort` for (caller must stop)
+ *  - `copied`     — number of skills copied (or, in dry mode, would be copied)
+ *
+ * `dry` true performs no writes so callers can pre-flight a clash before
+ * mutating a project or the shared template.
+ */
+function copySkills(srcDir, destDir, resolveJson, dry = false) {
+  const names = listSkillNames(srcDir);
+  if (!names.length) return { copied: 0, aborted: [], unresolved: [] };
+  const resolveMap = parseResolveMap(resolveJson, '--resolve-skills');
+  const unresolved = [];
+  const aborted = [];
+  let copied = 0;
+  for (const n of names) {
+    const src = path.join(srcDir, n);
+    const dest = path.join(destDir, n);
+    const clashes = fs.existsSync(dest);
+    if (clashes) {
+      const choice = resolveMap[n];
+      if (choice == null) {
+        unresolved.push(n);
+        continue;
+      }
+      if (choice === 'abort') {
+        aborted.push(n);
+        continue;
+      }
+      if (choice !== 'keep' && choice !== 'take') {
+        die(`Invalid choice "${choice}" for skill "${n}" (expected keep|take|abort).`);
+      }
+      if (choice === 'keep') continue;
+      if (dry) {
+        copied++;
+        continue;
+      }
+      // 'take' — replace the existing skill directory entirely.
+      fs.rmSync(dest, { recursive: true, force: true });
+    }
+    if (dry) {
+      copied++;
+      continue;
+    }
+    copyDirectoryContents(src, dest);
+    copied++;
+  }
+  return { copied, aborted, unresolved };
+}
+
 function updateGitignore(configPath, secretFiles) {
   const destDir = path.dirname(configPath);
   const gitRoot = findGitRoot(destDir);
@@ -422,33 +498,68 @@ function updateGitignore(configPath, secretFiles) {
   }
 }
 
-function cmdPush(name, targetArg) {
+function cmdPush(name, targetArg, resolveSkillsJson) {
   const template = templateDir(name);
   const config = resolveTargetConfig(targetArg);
   if (!fs.existsSync(config) || !fs.statSync(config).isFile()) {
     die(`No project config found to push: ${config}`);
   }
+  const configDir = path.dirname(config);
+  const sourceSkills = path.join(configDir, 'skills');
+  const templateSkills = path.join(template, 'skills');
+  const hasProjectSkills = fs.existsSync(sourceSkills) && fs.statSync(sourceSkills).isDirectory();
+
+  // Pre-flight: detect skill name clashes before mutating the shared template.
+  if (hasProjectSkills) {
+    const plan = copySkills(sourceSkills, templateSkills, resolveSkillsJson, /*dry*/ true);
+    if (plan.unresolved.length) {
+      reportSkillClashes(sourceSkills, templateSkills, plan.unresolved);
+      console.error(
+        `\n${plan.unresolved.length} skill clash(es). Resolve with: tpl.mjs push ${name} ${targetArg} --resolve-skills '<map>'`,
+      );
+      return 1;
+    }
+    if (plan.aborted.length) {
+      console.error(`Aborting: 'abort' chosen for skills: ${plan.aborted.join(', ')}`);
+      return 1;
+    }
+  }
+
   fs.mkdirSync(template, { recursive: true });
   fs.copyFileSync(config, path.join(template, 'opencode.jsonc'));
+  const counts = ['config'];
 
-  const sourceSecrets = path.join(path.dirname(config), 'secrets');
+  // Secrets: bytes are copied verbatim and never read/printed; the template
+  // secrets/ dir is always kept present so a template without project secrets
+  // still has a place to drop them.
+  const sourceSecrets = path.join(configDir, 'secrets');
   const templateSecrets = path.join(template, 'secrets');
   fs.mkdirSync(templateSecrets, { recursive: true });
   if (fs.existsSync(sourceSecrets) && fs.statSync(sourceSecrets).isDirectory()) {
     const files = copyDirectoryContents(sourceSecrets, templateSecrets);
-    console.log(`Pushed config and ${files.length} secret file(s) to template "${name}".`);
+    if (files.length) counts.push(`${files.length} secret file(s)`);
   } else {
-    console.log(`Pushed config to template "${name}"; kept its secrets/ folder unchanged.`);
+    console.log('Template secrets/ folder left unchanged (project has no secrets/).');
   }
+
+  // Skills: ordinary committed content that travels with the template.
+  if (hasProjectSkills) {
+    const plan = copySkills(sourceSkills, templateSkills, resolveSkillsJson);
+    if (plan.copied) counts.push(`${plan.copied} skill(s)`);
+  } else {
+    console.log('No project skills/ to collect; template skills/ left unchanged.');
+  }
+
+  console.log(`Pushed ${counts.join(' and ')} to template "${name}".`);
 }
 
-function cmdApply(name, targetArg, resolveJson, dry) {
+function cmdApply(name, targetArg, resolveJson, resolveSkillsJson, dry) {
   const cfgFile = resolveTargetConfig(targetArg);
   const tplDir = ensureTemplate(name);
   const tplJson = readJsonc(path.join(tplDir, 'opencode.jsonc'));
   const targetJson = readJsonc(cfgFile) || {};
 
-  // Detect conflicts first (reports them, but does not write).
+  // Detect config conflicts first (reports them, but does not write).
   const conflicts = [];
   merge(targetJson, tplJson, '', (p, tv, mv) => {
     conflicts.push({ path: p, project: tv, template: mv });
@@ -464,6 +575,22 @@ function cmdApply(name, targetArg, resolveJson, dry) {
     return 1;
   }
 
+  // Pre-flight: detect skill name clashes before touching any file.
+  const tplSkills = path.join(tplDir, 'skills');
+  const outSkills = path.join(path.dirname(cfgFile), 'skills');
+  const skillsPlan = copySkills(tplSkills, outSkills, resolveSkillsJson, /*dry*/ true);
+  if (skillsPlan.unresolved.length) {
+    reportSkillClashes(tplSkills, outSkills, skillsPlan.unresolved);
+    console.error(
+      `\n${skillsPlan.unresolved.length} skill clash(es). Resolve with: tpl.mjs apply ${name} ${targetArg} --resolve-skills '<map>'`,
+    );
+    return 1;
+  }
+  if (skillsPlan.aborted.length) {
+    console.error(`Aborting: 'abort' chosen for skills: ${skillsPlan.aborted.join(', ')}`);
+    return 1;
+  }
+
   const merged = runApply(tplJson, targetJson, resolveJson || '{}');
   if (typeof merged === 'number') return merged;
 
@@ -475,6 +602,11 @@ function cmdApply(name, targetArg, resolveJson, dry) {
   console.log(`Wrote merged config to ${cfgFile}`);
   const copied = copySecrets(name, cfgFile);
   if (copied.length) updateGitignore(cfgFile, copied);
+
+  if (skillsPlan.copied) {
+    copySkills(tplSkills, outSkills, resolveSkillsJson);
+    console.log(`Copied ${skillsPlan.copied} skill(s) into ${outSkills}.`);
+  }
   return 0;
 }
 
@@ -491,13 +623,14 @@ Usage:
   tpl.mjs merge --check <name> <target>
   tpl.mjs merge --apply <name> <target> --resolve '<json path→choice map>'
   tpl.mjs pull <name> <target> [--resolve '<json path→choice map>']
-  tpl.mjs apply <name> <target> [--resolve '<json path→choice map>']
-  tpl.mjs push <name> <target>
+  tpl.mjs apply <name> <target> [--resolve '<json map>'] [--resolve-skills '<json map>']
+  tpl.mjs push <name> <target> [--resolve-skills '<json map>']
 
 <target> is a directory (e.g. ".") or a config file. If a directory, the config
 is resolved as: .opencode/opencode.jsonc → opencode.jsonc → create .opencode/opencode.jsonc.
 
 Conflict choices: "keep" (project wins) | "take" (template wins) | "abort".
+Skill name clashes use the same keep|take|abort choices via --resolve-skills.
 `);
 }
 
@@ -560,17 +693,21 @@ function main() {
   if (cmd === 'apply') {
     const name = argv[1];
     const target = argv[2];
-    if (!name || !target) die('Usage: tpl.mjs apply <name> <target> [--resolve <json>]');
+    if (!name || !target) die('Usage: tpl.mjs apply <name> <target> [--resolve <json>] [--resolve-skills <json>]');
     const resolveIdx = argv.indexOf('--resolve');
     const resolveJson = resolveIdx >= 0 ? argv[resolveIdx + 1] : null;
+    const resolveSkillsIdx = argv.indexOf('--resolve-skills');
+    const resolveSkillsJson = resolveSkillsIdx >= 0 ? argv[resolveSkillsIdx + 1] : null;
     const dry = argv.includes('--dry-run') || argv.includes('-n');
-    return cmdApply(name, target, resolveJson, dry);
+    return cmdApply(name, target, resolveJson, resolveSkillsJson, dry);
   }
   if (cmd === 'push') {
     const name = argv[1];
     const target = argv[2];
-    if (!name || !target) die('Usage: tpl.mjs push <name> <target>');
-    return cmdPush(name, target);
+    if (!name || !target) die('Usage: tpl.mjs push <name> <target> [--resolve-skills <json>]');
+    const resolveSkillsIdx = argv.indexOf('--resolve-skills');
+    const resolveSkillsJson = resolveSkillsIdx >= 0 ? argv[resolveSkillsIdx + 1] : null;
+    return cmdPush(name, target, resolveSkillsJson);
   }
 
   die(`Unknown command: "${cmd}"\n`);

@@ -23,6 +23,7 @@ the live global config when `opencode/` is linked to `~/.config/opencode`).
 - `tpl/<name>/opencode.jsonc` — a committed template (no secrets).
 - `tpl/<name>/tpl.md` — human-readable description of what the template provides.
 - `tpl/<name>/secrets/*` — gitignored secrets; **only `tpl.mjs` reads these.**
+- `tpl/<name>/skills/` — optional skills the template installs into a project.
 
 ## SECURITY RULE — never read or echo secrets
 
@@ -57,17 +58,19 @@ merge --apply <name> <target> --resolve '<path->choice map>'
                                write the merged config, resolving conflicts
 pull <name> <target> [--resolve '<path->choice map>']
                                update an existing project from a changed template
-apply <name> <target> [--resolve '<path->choice map>']
-                               merge, then copy secrets/ into target config dir's secrets/
-                               and gitignore the token files (see below)
-push <name> <target>           promote a project's config and secrets/ to the template
+apply <name> <target> [--resolve '<path->choice map>'] [--resolve-skills '<name->choice map>']
+                               merge, then copy secrets/ and skills/ into the target config
+                               dir, and gitignore the token files (see below)
+push <name> <target> [--resolve-skills '<name->choice map>']
+                               promote a project's config, secrets/ and skills/ to the template
 ```
 
 `<target>` is a project directory (use `.` for the current repo) or a config file.
 For a directory the config is resolved as `.opencode/opencode.jsonc` →
 `opencode.jsonc` → create `.opencode/opencode.jsonc` if neither exists.
 
-Conflict choices per path: `keep` (project wins), `take` (template wins), `abort`.
+Config conflicts and skill name clashes both take `keep` (existing wins), `take`
+(incoming wins), or `abort`.
 
 ## Pulling an updated template
 
@@ -75,7 +78,9 @@ Use `pull <name> <target>` when the stored template has changed and you want to
 bring an existing project's config up to date. It uses the same deep-merge and
 conflict resolution as `merge --apply`: template keys missing from the project
 are added, project-only keys are retained, and differing values require an
-explicit choice. Unlike `apply`, `pull` does not copy secrets or modify `.gitignore`.
+explicit choice. Unlike `apply`, `pull` only refreshes the config: it does not
+copy secrets or skills, and does not modify `.gitignore`. Use `apply` to install
+a template's secrets *and* skills into a project.
 
 ## Applying a template
 
@@ -87,12 +92,24 @@ explicit choice. Unlike `apply`, `pull` does not copy secrets or modify `.gitign
    - For **each** conflict, ask the user: `keep` / `take` / `abort`.
    - Re-run with a resolution map, e.g.:
      `apply <name> <target> --resolve '{"providers.RWB.options.baseURL":"keep","model":"take"}'`
-     `--dry-run` / `-n` previews the write without touching files.
+   - If the template's `skills/` would overwrite a project skill with the same
+     name, `tpl.mjs` prints each clash as
+     `skill <name> | existing=... | incoming=...` and exits non-zero **before
+     touching any file**. Ask the user `keep` / `take` / `abort` per skill, then
+     re-run with `--resolve-skills`, e.g.:
+     `apply <name> <target> --resolve-skills '{"wb-wiki":"keep","find-skills":"take"}'`
+     (`keep` = keep the project's skill, `take` = replace it with the template's.)
+   - `--dry-run` / `-n` previews the write without touching files.
 4. `apply` then copies `tpl/<name>/secrets/` into a `secrets/` directory beside
    the target config, preserving nested folders and file bytes, and appends each
    copied secret path to the repo's `.gitignore` when inside a git repo. It never
    prints the secret. The destination `secrets/` directory is created even when
    the template's directory is empty.
+5. `apply` also copies `tpl/<name>/skills/` into a `skills/` directory beside the
+   target config. Skills are ordinary committed content, so they are **never**
+   added to `.gitignore`. If the template ships no `skills/`, nothing is copied.
+   Non-clashing skills are copied as-is; clashing ones are copied only when `take`
+   was chosen.
 
 If you only want to write the config yourself and handle secrets separately, use
 `merge --check` / `merge --apply` and confirm the secret copy step.
@@ -104,9 +121,14 @@ If you only want to write the config yourself and handle secrets separately, use
 - `rm <name>` deletes a template after confirmation (pass `--yes` when the user
   already confirmed).
 - `push <name> <target>` promotes the target repo's config to the named template
-  and copies its adjacent `secrets/` directory into the template's `secrets/`.
-  The template secrets directory is always kept present; if the source has no
-  `secrets/`, existing template secrets are left unchanged. Secret bytes are
-  copied by the CLI only and never printed. This updates the shared template,
-  so confirm with the user before running it.
+  and copies its adjacent `secrets/` and `skills/` directories into the template's
+  matching directories. The template `secrets/` directory is always kept present;
+  if the source has no `secrets/`, existing template secrets are left unchanged.
+  A project `skills/` is copied into the template's `skills/` (created if needed);
+  if the project has no `skills/`, the template's existing skills are left
+  unchanged. If a project skill has the same name as a template skill, `push`
+  stops and asks the user `keep` / `take` / `abort` (via `--resolve-skills`)
+  before changing anything. Secret bytes are copied by the CLI only and never
+  printed. This updates the shared template, so confirm with the user before
+  running it.
 - Template `opencode.jsonc` files are committed; anything under `secrets/` is not.
