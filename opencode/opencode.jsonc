@@ -3,10 +3,10 @@
   "model": "openai/gpt-6-luna",
   "shell": "xonsh",
   "permissions": [
-    { "action": "read",  "resource": "*secrets*", "effect": "deny" },
-    { "action": "glob",  "resource": "*secrets*", "effect": "deny" },
-    { "action": "grep",  "resource": "*secrets*", "effect": "deny" },
-    { "action": "write", "resource": "*secrets*", "effect": "deny" },
-    { "action": "edit",  "resource": "*secrets*", "effect": "deny" }
+    { "action": "read",  "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" },
+    { "action": "glob",  "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" },
+    { "action": "grep",  "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" },
+    { "action": "write", "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" },
+    { "action": "edit",  "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" }
   ]
 }
