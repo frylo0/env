@@ -2,9 +2,12 @@
 
 import time
 
+from core import smart_indent
+
 def main():
     aliases['go'] = 'git checkout'
     aliases['gs'] = 'git status'
+    aliases['gst'] = 'git status --short'
     aliases['ga'] = 'git add'
     aliases['branch'] = 'git branch'
     aliases['commit'] = 'git commit'
@@ -22,6 +25,9 @@ def main():
     aliases['chpickc'] = 'git cherry-pick --continue'
     aliases['revoke'] = 'node ~/Code/utils/git-revoke/index.mjs'
 
+    aliases['pusht'] = 'git push && git push --tags'
+    aliases['pushnv'] = 'git push --no-verify'
+
     aliases['tagp'] = _tagp
 
     aliases['creb'] = _creb
@@ -35,6 +41,7 @@ def main():
     aliases['goms'] = _goms
 
     aliases['reprune'] = _reprune
+    aliases['shift'] = _shift
 
 
 def _tagp(args): 
@@ -46,9 +53,15 @@ def _exists_branch(branch_name):
     
 
 def _gop(args): 
+    branch = $(git rev-parse --abbrev-ref HEAD)
+
     if not _exists_branch(args[0]):
-        git checkout -b @(args[0])   
-    git push -u origin @(args[0])
+        git checkout -b @(args[0])
+    else:
+        git checkout @(args[0])
+        git reset --hard @(branch)
+
+    git push --no-verify -u origin @(args[0])
 
 def _gos(args):
     git stash -u && git checkout @(args[0])
@@ -119,6 +132,64 @@ def _reprune(args):
     # `xargs git branch -D` - deletes all the matching local branches
 
     git fetch --prune && git branch --v | grep "\\[gone\\]" | awk '{print $1}' | xargs git branch -D
+
+def _shift(args):
+    help = smart_indent("""
+        ================================
+
+        Tool to rebase US with Features onto fresh Release
+
+        Syntax
+        
+            shift r us [feat feat feat ...]
+            shift R-0 us-ID-0000 ID-0001-feature ID-0002-feature
+
+
+        From
+                /--* ID-0002-feature
+               / /-* ID-0001-feature
+            /-*-* us-ID-0000
+        ----* R-0 ------------ origin/R-0
+        
+        To
+                                  /--* ID-0002-feature
+                                 / /-* ID-0001-feature
+                              /-*-* us-ID-0000
+        ---------------------* R-0 ------
+
+        =================================
+
+        ======================================================
+        (!) FIXME: No wait or failure catch. Do not use yet!!!
+        ======================================================
+
+    """)
+
+    is_help = len([True for arg in args if arg == '--help']) > 0
+    is_help = is_help or len(args) < 2
+
+    if is_help:
+        print(help)
+        return
+
+    r_branch = args[0]
+    us_branch = args[1]
+    features = args[2:]
+
+    git checkout @(r_branch)
+    r_hash = $(git rev-parse HEAD)
+    git pull
+
+    git checkout @(us_branch)
+    us_hash = $(git rev-parse HEAD)
+    git pull
+    git rebase --onto @(r_branch) @(r_hash)
+
+    for f_branch in features:
+        git checkout @(f_branch)
+        git pull
+        git rebase --onto @(us_branch) @(us_hash)
+
 
 
 main()

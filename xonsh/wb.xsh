@@ -51,6 +51,7 @@ class WBDeploy:
         aliases['wb.deploy.prod'] = lambda args: self.prod(args)
         aliases['wb.deploy.stage'] = lambda args: self.stage(args)
         aliases['wb.deploy.feat'] = lambda args: self.feat(args)
+        aliases['wb.dep'] = lambda args: self.dep(args)
 
     def _exists_branch(self, branch_name):
         return $(git rev-parse --verify f'{branch_name}') != ''
@@ -174,6 +175,20 @@ class WBDeploy:
             self._checkout_or_merge_then_push(feature_branch)
             
         self._two_step_notify(f'{feature_branch}', { 'deploy': '3m' })
+
+    def dep(self, args):
+        target_branch = args[0]
+        current_branch = self._get_current_branch()
+        
+        if (self._exists_branch(target_branch)):
+            git checkout @(target_branch) \
+            && git reset --hard @(current_branch) \
+            && git push -f
+        else:
+            git checkout -b @(target_branch) \
+            && git push -u origin @(target_branch)
+
+        git checkout @(current_branch)
 
 
 _wb = WB()
