@@ -8,7 +8,7 @@ const config = {
   messages: { done: "D", ask: "A", perm: "P" },
 }
 
-function makeContext({ options = config, events = [], childSessions = [] } = {}) {
+function makeContext({ options = config, events = [], childSessions = [], directory = "/project" } = {}) {
   const logs = []
   const notifications = []
   return {
@@ -16,7 +16,7 @@ function makeContext({ options = config, events = [], childSessions = [] } = {})
     notifications,
     context: {
       options,
-      location: { directory: "/project" },
+      location: { directory },
       app: { log: async (entry) => logs.push(entry) },
       session: {
         get: async ({ sessionID }) => ({ parentID: childSessions.includes(sessionID) ? "parent" : undefined }),
@@ -37,7 +37,12 @@ async function withFetch(fetchMock, run) {
 }
 
 let nextEventID = 0
-const event = (type, data = {}) => ({ id: `evt_test_${++nextEventID}`, type, data })
+const event = (type, data = {}) => ({
+  id: `evt_test_${++nextEventID}`,
+  type,
+  data,
+  location: { directory: "/project" },
+})
 
 test("exports a v2 plugin definition", () => {
   assert.equal(plugin.id, "opencode-ntfy")
@@ -90,6 +95,25 @@ test("uses v2 terminal execution events and notifies primary sessions only once"
     cleanup()
   })
   assert.deepEqual(harness.notifications, ["D"])
+})
+
+test("only the plugin instance matching the event location sends", async () => {
+  const completion = event("session.execution.succeeded", { sessionID: "primary" })
+  completion.location.workspaceID = "event-workspace"
+  const outside = makeContext({ directory: "/other", events: [completion] })
+  const matching = makeContext({ directory: "/project", events: [completion] })
+  await withFetch(async (_, request) => {
+    matching.notifications.push(request.body)
+    return { ok: true, status: 200 }
+  }, async () => {
+    const disposeOutside = await plugin.setup(outside.context)
+    const disposeMatching = await plugin.setup(matching.context)
+    await new Promise((resolve) => setImmediate(resolve))
+    disposeOutside()
+    disposeMatching()
+  })
+  assert.deepEqual(outside.notifications, [])
+  assert.deepEqual(matching.notifications, ["D"])
 })
 
 test("uses token from environment and reports request failures", async () => {

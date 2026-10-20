@@ -1,12 +1,11 @@
-import { appendFile } from "node:fs/promises"
+import { appendFile, mkdir, open } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 const TOKEN_ENV = "NTFY_TOKEN"
 const REQUEST_TIMEOUT_MS = 10_000
 const DIAGNOSTIC_LOG = join(tmpdir(), "opencode-ntfy-debug.log")
-const SEEN_EVENT_LIMIT = 1_000
-const seenEventIDs = new Set()
+const CLAIM_DIRECTORY = join(tmpdir(), "opencode-ntfy-event-claims")
 
 const DEFAULT_CONFIG = {
   server: "https://ntfy.frylo.org",
@@ -108,8 +107,27 @@ function eventData(event) {
   return event?.data ?? event?.properties ?? {}
 }
 
-function createEventHandler({ getSession, sendNotification, info }) {
-  async function notifyCompletion(sessionID) {
+async function claimEvent(eventID, reportError) {
+  if (typeof eventID !== "string" || !eventID) {
+    reportError("cannot deduplicate event", "v2 event has no ID")
+    return false
+  }
+
+  try {
+    await mkdir(CLAIM_DIRECTORY, { recursive: true, mode: 0o700 })
+    const marker = join(CLAIM_DIRECTORY, `${encodeURIComponent(eventID)}.claimed`)
+    const handle = await open(marker, "wx", 0o600)
+    await handle.close()
+    return true
+  } catch (error) {
+    if (error?.code === "EEXIST") return false
+    reportError("could not claim event for deduplication", networkErrorCode(error))
+    return false
+  }
+}
+
+function createEventHandler({ getSession, sendNotification, info, reportError }) {
+  async function notifyCompletion(sessionID, eventID) {
     if (typeof sessionID !== "string") {
       info("completion ignored: event has no session ID")
       return
@@ -121,33 +139,35 @@ function createEventHandler({ getSession, sendNotification, info }) {
       return
     }
 
+    if (!await claimEvent(eventID, reportError)) {
+      info("duplicate completion ignored")
+      return
+    }
+
     info("completion accepted for primary session")
     void sendNotification("done")
   }
 
   return async function handleEvent(input) {
     const event = input?.event ?? input
-    if (typeof event?.id === "string") {
-      if (seenEventIDs.has(event.id)) {
-        info("duplicate event ignored")
-        return
-      }
-      seenEventIDs.add(event.id)
-      if (seenEventIDs.size > SEEN_EVENT_LIMIT) {
-        seenEventIDs.delete(seenEventIDs.values().next().value)
-      }
-    }
-
     info(`received event ${event?.type ?? "<unknown>"}`)
     const data = eventData(event)
 
     if (event?.type === "permission.v2.asked" || event?.type === "permission.asked") {
+      if (!await claimEvent(event.id, reportError)) {
+        info("duplicate permission event ignored")
+        return
+      }
       info("permission event matched perm notification")
       void sendNotification("perm")
       return
     }
 
     if (event?.type === "question.v2.asked" || event?.type === "question.asked") {
+      if (!await claimEvent(event.id, reportError)) {
+        info("duplicate question event ignored")
+        return
+      }
       info("question event matched ask notification")
       void sendNotification("ask")
       return
@@ -159,7 +179,7 @@ function createEventHandler({ getSession, sendNotification, info }) {
       "session.execution.interrupted",
     ].includes(event?.type)) {
       info(`terminal execution event observed (${event.type})`)
-      await notifyCompletion(data.sessionID)
+      await notifyCompletion(data.sessionID, event.id)
     }
   }
 }
@@ -256,6 +276,7 @@ async function setupV2(context) {
     },
     sendNotification: runtime.sendNotification,
     info: runtime.info,
+    reportError: runtime.reportError,
   })
 
   void (async () => {
