@@ -58,8 +58,9 @@ merge --apply <name> <target> --resolve '<path->choice map>'
 sync <name> <target> [--resolve '<path->choice map>']
                                update an existing project from a changed template
 apply <name> <target> [--resolve '<path->choice map>']
-                               merge, then copy secrets/ into the target config dir
+                               merge, then copy secrets/ into target config dir's secrets/
                                and gitignore the token files (see below)
+push <name> <target>           promote a project's config and secrets/ to the template
 ```
 
 `<target>` is a project directory (use `.` for the current repo) or a config file.
@@ -87,9 +88,11 @@ explicit choice. Unlike `apply`, `sync` does not copy secrets or modify `.gitign
    - Re-run with a resolution map, e.g.:
      `apply <name> <target> --resolve '{"providers.RWB.options.baseURL":"keep","model":"take"}'`
      `--dry-run` / `-n` previews the write without touching files.
-4. `apply` then copies `tpl/<name>/secrets/*` next to the target config (so
-   `{file:...}` resolves) and appends the token file path to the repo's `.gitignore`
-   when inside a git repo. It never prints the secret.
+4. `apply` then copies `tpl/<name>/secrets/` into a `secrets/` directory beside
+   the target config, preserving nested folders and file bytes, and appends each
+   copied secret path to the repo's `.gitignore` when inside a git repo. It never
+   prints the secret. The destination `secrets/` directory is created even when
+   the template's directory is empty.
 
 If you only want to write the config yourself and handle secrets separately, use
 `merge --check` / `merge --apply` and confirm the secret copy step.
@@ -100,4 +103,10 @@ If you only want to write the config yourself and handle secrets separately, use
   then put the secret file(s) into `tpl/<name>/secrets/`.
 - `rm <name>` deletes a template after confirmation (pass `--yes` when the user
   already confirmed).
+- `push <name> <target>` promotes the target repo's config to the named template
+  and copies its adjacent `secrets/` directory into the template's `secrets/`.
+  The template secrets directory is always kept present; if the source has no
+  `secrets/`, existing template secrets are left unchanged. Secret bytes are
+  copied by the CLI only and never printed. This updates the shared template,
+  so confirm with the user before running it.
 - Template `opencode.jsonc` files are committed; anything under `secrets/` is not.

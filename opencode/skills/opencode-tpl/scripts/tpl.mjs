@@ -360,30 +360,33 @@ function findGitRoot(start) {
   }
 }
 
+function copyDirectoryContents(srcDir, destDir, rootDest = destDir) {
+  fs.mkdirSync(destDir, { recursive: true });
+  let files = [];
+  for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+    const src = path.join(srcDir, entry.name);
+    const dest = path.join(destDir, entry.name);
+    if (entry.isDirectory()) {
+      files = files.concat(copyDirectoryContents(src, dest, rootDest));
+    } else if (entry.isFile()) {
+      fs.copyFileSync(src, dest);
+      files.push(path.relative(rootDest, dest));
+    }
+  }
+  return files;
+}
+
 function copySecrets(name, configPath) {
   const srcDir = path.join(ensureTemplate(name), 'secrets');
-  const destDir = path.dirname(configPath);
+  const destDir = path.join(path.dirname(configPath), 'secrets');
   if (!fs.existsSync(srcDir)) {
-    console.log('No secrets/ folder in template; nothing to copy.');
+    fs.mkdirSync(destDir, { recursive: true });
+    console.log(`Created empty secrets/ folder at ${destDir}.`);
     return [];
   }
-  const files = fs
-    .readdirSync(srcDir)
-    .filter((f) => {
-      const p = path.join(srcDir, f);
-      return fs.statSync(p).isFile();
-    })
-    .sort();
-  if (!files.length) {
-    console.log('secrets/ is empty; nothing to copy.');
-    return [];
-  }
-  fs.mkdirSync(destDir, { recursive: true });
-  for (const f of files) {
-    // Copy bytes only; content is never read/echoed here.
-    fs.copyFileSync(path.join(srcDir, f), path.join(destDir, f));
-  }
-  console.log(`Copied ${files.length} secret file(s) to ${destDir} (${files.join(', ')}).`);
+  // Preserve the secrets directory and its full hierarchy; file bytes are never read.
+  const files = copyDirectoryContents(srcDir, destDir);
+  console.log(`Copied ${files.length} secret file(s) into ${destDir}.`);
   return files;
 }
 
@@ -399,7 +402,7 @@ function updateGitignore(configPath, secretFiles) {
   const lines = existing.length ? existing.split('\n') : [];
   let added = 0;
   for (const f of secretFiles) {
-    const rel = path.relative(gitRoot, path.join(destDir, f)).replace(/\\/g, '/');
+    const rel = path.relative(gitRoot, path.join(destDir, 'secrets', f)).replace(/\\/g, '/');
     if (rel.startsWith('..')) {
       console.log(`Skip gitignore for ${rel}: outside repo.`);
       continue;
@@ -416,6 +419,26 @@ function updateGitignore(configPath, secretFiles) {
     console.log(`Appended ${added} path(s) to ${giPath}.`);
   } else {
     console.log('Gitignore already up to date.');
+  }
+}
+
+function cmdPush(name, targetArg) {
+  const template = templateDir(name);
+  const config = resolveTargetConfig(targetArg);
+  if (!fs.existsSync(config) || !fs.statSync(config).isFile()) {
+    die(`No project config found to push: ${config}`);
+  }
+  fs.mkdirSync(template, { recursive: true });
+  fs.copyFileSync(config, path.join(template, 'opencode.jsonc'));
+
+  const sourceSecrets = path.join(path.dirname(config), 'secrets');
+  const templateSecrets = path.join(template, 'secrets');
+  fs.mkdirSync(templateSecrets, { recursive: true });
+  if (fs.existsSync(sourceSecrets) && fs.statSync(sourceSecrets).isDirectory()) {
+    const files = copyDirectoryContents(sourceSecrets, templateSecrets);
+    console.log(`Pushed config and ${files.length} secret file(s) to template "${name}".`);
+  } else {
+    console.log(`Pushed config to template "${name}"; kept its secrets/ folder unchanged.`);
   }
 }
 
@@ -469,6 +492,7 @@ Usage:
   tpl.mjs merge --apply <name> <target> --resolve '<json path→choice map>'
   tpl.mjs sync <name> <target> [--resolve '<json path→choice map>']
   tpl.mjs apply <name> <target> [--resolve '<json path→choice map>']
+  tpl.mjs push <name> <target>
 
 <target> is a directory (e.g. ".") or a config file. If a directory, the config
 is resolved as: .opencode/opencode.jsonc → opencode.jsonc → create .opencode/opencode.jsonc.
@@ -541,6 +565,12 @@ function main() {
     const resolveJson = resolveIdx >= 0 ? argv[resolveIdx + 1] : null;
     const dry = argv.includes('--dry-run') || argv.includes('-n');
     return cmdApply(name, target, resolveJson, dry);
+  }
+  if (cmd === 'push') {
+    const name = argv[1];
+    const target = argv[2];
+    if (!name || !target) die('Usage: tpl.mjs push <name> <target>');
+    return cmdPush(name, target);
   }
 
   die(`Unknown command: "${cmd}"\n`);
