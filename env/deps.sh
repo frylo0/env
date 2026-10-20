@@ -21,6 +21,13 @@ function install_deps() {
       echo 'Xonsh already installed!';
    fi
 
+   if command -v "opencode" &> /dev/null; then
+      echo "OpenCode already installed!"
+   else
+      curl -fsSL https://opencode.ai/v2/install | bash
+      echo "OpenCode has been installed!"
+   fi
+
    if command -v "wp" &> /dev/null; then
       echo "WP-CLI already installed!"
    else

@@ -40,6 +40,10 @@ create_symlink \
 	--file-name 'xonsh' \
 	--target-folder ~/.config
 
+create_symlink \
+	--file-name 'opencode' \
+	--target-folder ~/.config
+
 printf "\nSuccess!!!"
 
 
