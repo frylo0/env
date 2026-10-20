@@ -467,6 +467,7 @@ Usage:
   tpl.mjs rm <name> [--yes]
   tpl.mjs merge --check <name> <target>
   tpl.mjs merge --apply <name> <target> --resolve '<json path→choice map>'
+  tpl.mjs sync <name> <target> [--resolve '<json path→choice map>']
   tpl.mjs apply <name> <target> [--resolve '<json path→choice map>']
 
 <target> is a directory (e.g. ".") or a config file. If a directory, the config
@@ -515,6 +516,21 @@ function main() {
     const outFile = resolveTargetConfig(target);
     writeJsonc(outFile, merged);
     console.log(`Wrote merged config to ${outFile}`);
+    return 0;
+  }
+  if (cmd === 'sync') {
+    const name = argv[1];
+    const target = argv[2];
+    if (!name || !target) die("Usage: tpl.mjs sync <name> <target> [--resolve '<json path→choice map>']");
+    const tplJson = readJsonc(path.join(ensureTemplate(name), 'opencode.jsonc'));
+    const outFile = resolveTargetConfig(target);
+    const targetJson = readJsonc(outFile) || {};
+    const resolveIdx = argv.indexOf('--resolve');
+    const resolveJson = resolveIdx >= 0 ? argv[resolveIdx + 1] : null;
+    const merged = runApply(tplJson, targetJson, resolveJson);
+    if (typeof merged === 'number') return merged;
+    writeJsonc(outFile, merged);
+    console.log(`Synced template "${name}" to ${outFile}`);
     return 0;
   }
   if (cmd === 'apply') {
