@@ -30,6 +30,7 @@ function resolveConfig(options) {
     server: settings.server ?? DEFAULT_CONFIG.server,
     topic: settings.topic,
     tokenEnv: settings.tokenEnv,
+    debug: settings.debug === true,
     messages: { ...DEFAULT_CONFIG.messages, ...configuredMessages },
   }
 }
@@ -196,8 +197,12 @@ function createEventHandler({ getSession, sendNotification, info, reportError })
 
 function createRuntime({ options, env, fetchImpl, writeLog }) {
   const config = resolveConfig(options)
-  const info = (message) => writeLog("info", `[opencode-ntfy:lifecycle] ${message}`)
-  const reportError = (message, details) => writeLog("error", `[opencode-ntfy] ${message}${details ? ` (${details})` : ""}`)
+  const info = (message) => {
+    if (config.debug) writeLog("info", `[opencode-ntfy:lifecycle] ${message}`)
+  }
+  const reportError = (message, details) => {
+    if (config.debug) writeLog("error", `[opencode-ntfy] ${message}${details ? ` (${details})` : ""}`)
+  }
   info(`configuration received; topic ${typeof config.topic === "string" && config.topic.trim() ? "present" : "missing"}`)
 
   if (typeof config.topic !== "string" || !config.topic.trim()) {
@@ -214,7 +219,7 @@ function createRuntime({ options, env, fetchImpl, writeLog }) {
     info("setup stopped because server configuration is invalid")
     return
   }
-  if (url.protocol === "http:") {
+  if (url.protocol === "http:" && config.debug) {
     writeLog("warn", `[opencode-ntfy] server ${url.origin} uses unencrypted HTTP`)
   }
   info(`configuration validated for server ${url.origin}`)
@@ -243,8 +248,10 @@ function createRuntime({ options, env, fetchImpl, writeLog }) {
 }
 
 async function setupV2(context) {
-  // Temporary INFO-level lifecycle tracing; remove after diagnosing deployment.
+  const debugEnabled = context.options?.debug === true
   const writeLog = (level, message) => {
+    if (!debugEnabled) return
+
     const line = `${new Date().toISOString()} level=${level.toUpperCase()} ${message}\n`
     void appendFile(DIAGNOSTIC_LOG, line, { mode: 0o600 }).catch((error) => {
       console.error(`[opencode-ntfy] could not write diagnostic file: ${networkErrorCode(error)}`)

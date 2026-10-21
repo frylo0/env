@@ -132,7 +132,7 @@ test("only the plugin instance matching the event location sends", async () => {
 })
 
 test("uses token from environment and reports request failures", async () => {
-  const harness = makeContext({ events: [event("question.v2.asked")] })
+  const harness = makeContext({ options: { ...config, debug: true }, events: [event("question.v2.asked")] })
   const originalToken = process.env.NTFY_TOKEN
   process.env.NTFY_TOKEN = "secret"
   await withFetch(async (_, request) => {
@@ -150,14 +150,14 @@ test("uses token from environment and reports request failures", async () => {
 })
 
 test("reports invalid URL and HTTP response errors", async () => {
-  const invalid = makeContext({ options: { ...config, server: "ntfy.example" } })
+  const invalid = makeContext({ options: { ...config, server: "ntfy.example", debug: true } })
   const noEvents = []
   invalid.context.event.subscribe = async function* () { yield* noEvents }
   const stopInvalid = await plugin.setup(invalid.context)
   assert.ok(invalid.logs.some((entry) => entry.message.includes("include https:// or http://")))
   stopInvalid?.()
 
-  const failedResponse = makeContext({ events: [event("question.v2.asked")] })
+  const failedResponse = makeContext({ options: { ...config, debug: true }, events: [event("question.v2.asked")] })
   await withFetch(async () => ({ ok: false, status: 401, statusText: "Unauthorized" }), async () => {
     const cleanup = await plugin.setup(failedResponse.context)
     await new Promise((resolve) => setImmediate(resolve))
@@ -167,7 +167,7 @@ test("reports invalid URL and HTTP response errors", async () => {
 })
 
 test("lifecycle info logs event and delivery path without topic or message", async () => {
-  const harness = makeContext({ options: { ...config, topic: "private-topic" }, events: [event("question.v2.asked")] })
+  const harness = makeContext({ options: { ...config, topic: "private-topic", debug: true }, events: [event("question.v2.asked")] })
   await withFetch(async () => ({ ok: true, status: 200 }), async () => {
     const cleanup = await plugin.setup(harness.context)
     await new Promise((resolve) => setImmediate(resolve))
@@ -178,4 +178,14 @@ test("lifecycle info logs event and delivery path without topic or message", asy
   assert.match(output, /received event question\.v2\.asked/)
   assert.match(output, /ask notification accepted with HTTP 200/)
   assert.doesNotMatch(output, /private-topic|\bA\b/)
+})
+
+test("does not write diagnostics unless debug is enabled", async () => {
+  const harness = makeContext({ events: [event("question.v2.asked")] })
+  await withFetch(async () => ({ ok: true, status: 200 }), async () => {
+    const cleanup = await plugin.setup(harness.context)
+    await new Promise((resolve) => setImmediate(resolve))
+    await cleanup()
+  })
+  assert.deepEqual(harness.logs, [])
 })
