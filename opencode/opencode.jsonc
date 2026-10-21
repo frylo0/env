@@ -3,10 +3,50 @@
   "model": "openai/gpt-6-luna",
   "shell": "xonsh",
   "permissions": [
-    { "action": "read",  "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" },
-    { "action": "glob",  "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" },
-    { "action": "grep",  "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" },
-    { "action": "write", "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" },
-    { "action": "edit",  "resource": "*skills/opencode-tpl/*secrets*", "effect": "deny" }
+    {
+      "action": "read",
+      "resource": "*skills/opencode-tpl/*secrets*",
+      "effect": "deny"
+    },
+    {
+      "action": "glob",
+      "resource": "*skills/opencode-tpl/*secrets*",
+      "effect": "deny"
+    },
+    {
+      "action": "grep",
+      "resource": "*skills/opencode-tpl/*secrets*",
+      "effect": "deny"
+    },
+    {
+      "action": "write",
+      "resource": "*skills/opencode-tpl/*secrets*",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*skills/opencode-tpl/*secrets*",
+      "effect": "deny"
+    },
+    {
+      "action": "*",
+      "resource": "~/.perm-test/*",
+      "effect": "ask"
+    },
+  ],
+  "plugins": [
+    {
+      "package": "./plugins/opencode-ntfy",
+      "options": {
+        "server": "https://ntfy.frylo.org",
+        "topic": "oc-personal",
+        "messages": {
+          "done": "$ ✅ yay",
+          "ask": "$ 💬 huu",
+          "perm": "$ 🔐 bla",
+          "form": "$ 📝 duk"
+        }
+      }
+    }
   ]
 }
