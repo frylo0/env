@@ -41,10 +41,10 @@
         "server": "https://ntfy.frylo.org",
         "topic": "oc-personal",
         "messages": {
-          "done": "$ ✅ yay",
-          "ask": "$ 💬 huu",
-          "perm": "$ 🔐 bla",
-          "form": "$ 📝 duk"
+          "done": "✅ done",
+          "ask": "💬 ask",
+          "perm": "🔐 perm",
+          "form": "📝 form"
         }
       }
     }

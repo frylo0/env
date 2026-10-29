@@ -610,6 +610,57 @@ function cmdApply(name, targetArg, resolveJson, resolveSkillsJson, dry) {
   return 0;
 }
 
+function cmdPull(name, targetArg, resolveJson, resolveSkillsJson) {
+  const cfgFile = resolveTargetConfig(targetArg);
+  const tplDir = ensureTemplate(name);
+  const tplJson = readJsonc(path.join(tplDir, 'opencode.jsonc'));
+  const targetJson = readJsonc(cfgFile) || {};
+
+  // Detect config conflicts first (reports them, but does not write).
+  const conflicts = [];
+  merge(targetJson, tplJson, '', (p, tv, mv) => {
+    conflicts.push({ path: p, project: tv, template: mv });
+    return mv;
+  });
+  if (conflicts.length && resolveJson == null) {
+    for (const c of conflicts) {
+      console.log(`${c.path} | project=${JSON.stringify(c.project)} | template=${JSON.stringify(c.template)}`);
+    }
+    console.error(
+      `\n${conflicts.length} conflict(s). Resolve with: tpl.mjs pull ${name} ${targetArg} --resolve '<map>'`,
+    );
+    return 1;
+  }
+
+  // Pre-flight: detect skill name clashes before touching any file.
+  const tplSkills = path.join(tplDir, 'skills');
+  const outSkills = path.join(path.dirname(cfgFile), 'skills');
+  const skillsPlan = copySkills(tplSkills, outSkills, resolveSkillsJson, /*dry*/ true);
+  if (skillsPlan.unresolved.length) {
+    reportSkillClashes(tplSkills, outSkills, skillsPlan.unresolved);
+    console.error(
+      `\n${skillsPlan.unresolved.length} skill clash(es). Resolve with: tpl.mjs pull ${name} ${targetArg} --resolve-skills '<map>'`,
+    );
+    return 1;
+  }
+  if (skillsPlan.aborted.length) {
+    console.error(`Aborting: 'abort' chosen for skills: ${skillsPlan.aborted.join(', ')}`);
+    return 1;
+  }
+
+  const merged = runApply(tplJson, targetJson, resolveJson || '{}');
+  if (typeof merged === 'number') return merged;
+
+  writeJsonc(cfgFile, merged);
+  console.log(`Pulled template "${name}" to ${cfgFile}`);
+
+  if (skillsPlan.copied) {
+    copySkills(tplSkills, outSkills, resolveSkillsJson);
+    console.log(`Copied ${skillsPlan.copied} skill(s) into ${outSkills}.`);
+  }
+  return 0;
+}
+
 /* -------------------------------------------------------------- main */
 
 function usage() {
@@ -622,7 +673,7 @@ Usage:
   tpl.mjs rm <name> [--yes]
   tpl.mjs merge --check <name> <target>
   tpl.mjs merge --apply <name> <target> --resolve '<json path→choice map>'
-  tpl.mjs pull <name> <target> [--resolve '<json path→choice map>']
+  tpl.mjs pull <name> <target> [--resolve '<json path→choice map>'] [--resolve-skills '<json map>']
   tpl.mjs apply <name> <target> [--resolve '<json map>'] [--resolve-skills '<json map>']
   tpl.mjs push <name> <target> [--resolve-skills '<json map>']
 
@@ -678,17 +729,12 @@ function main() {
   if (cmd === 'pull') {
     const name = argv[1];
     const target = argv[2];
-    if (!name || !target) die("Usage: tpl.mjs pull <name> <target> [--resolve '<json path→choice map>']");
-    const tplJson = readJsonc(path.join(ensureTemplate(name), 'opencode.jsonc'));
-    const outFile = resolveTargetConfig(target);
-    const targetJson = readJsonc(outFile) || {};
+    if (!name || !target) die("Usage: tpl.mjs pull <name> <target> [--resolve '<json path→choice map>'] [--resolve-skills '<json map>']");
     const resolveIdx = argv.indexOf('--resolve');
     const resolveJson = resolveIdx >= 0 ? argv[resolveIdx + 1] : null;
-    const merged = runApply(tplJson, targetJson, resolveJson);
-    if (typeof merged === 'number') return merged;
-    writeJsonc(outFile, merged);
-    console.log(`Pulled template "${name}" to ${outFile}`);
-    return 0;
+    const resolveSkillsIdx = argv.indexOf('--resolve-skills');
+    const resolveSkillsJson = resolveSkillsIdx >= 0 ? argv[resolveSkillsIdx + 1] : null;
+    return cmdPull(name, target, resolveJson, resolveSkillsJson);
   }
   if (cmd === 'apply') {
     const name = argv[1];

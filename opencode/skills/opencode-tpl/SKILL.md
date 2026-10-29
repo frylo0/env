@@ -56,8 +56,8 @@ rm <name> [--yes]            delete a template (asks for confirmation unless --y
 merge --check <name> <target>  report conflicts; exit 1 if any
 merge --apply <name> <target> --resolve '<path->choice map>'
                                write the merged config, resolving conflicts
-pull <name> <target> [--resolve '<path->choice map>']
-                               update an existing project from a changed template
+pull <name> <target> [--resolve '<path->choice map>'] [--resolve-skills '<name->choice map>']
+                               update an existing project from a changed template (config + skills)
 apply <name> <target> [--resolve '<path->choice map>'] [--resolve-skills '<name->choice map>']
                                merge, then copy secrets/ and skills/ into the target config
                                dir, and gitignore the token files (see below)
@@ -75,12 +75,14 @@ Config conflicts and skill name clashes both take `keep` (existing wins), `take`
 ## Pulling an updated template
 
 Use `pull <name> <target>` when the stored template has changed and you want to
-bring an existing project's config up to date. It uses the same deep-merge and
-conflict resolution as `merge --apply`: template keys missing from the project
-are added, project-only keys are retained, and differing values require an
-explicit choice. Unlike `apply`, `pull` only refreshes the config: it does not
-copy secrets or skills, and does not modify `.gitignore`. Use `apply` to install
-a template's secrets *and* skills into a project.
+bring an existing project's config and bundled skills up to date. It uses the
+same deep-merge and conflict resolution as `merge --apply` for the config:
+template keys missing from the project are added, project-only keys are retained,
+and differing values require an explicit choice. `pull` also copies the
+template's `skills/` into the project, with the same name-clash handling as
+`apply` (each clash resolved via `--resolve-skills` as `keep`/`take`/`abort`). It
+does **not** copy secrets, and does **not** modify `.gitignore` — use `apply` to
+also install a template's secrets.
 
 ## Applying a template
 

@@ -31,5 +31,9 @@ class CBD:
     def html(self):
         cd /var/www/html
 
+    @property
+    def ai(self):
+        cd ~/Code/ai
+
 
 cbd = CBD()
