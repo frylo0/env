@@ -85,26 +85,11 @@ class Env:
         self.update()
 
     def update(self):
-        self.is_openvpn = self.check_openvpn()
-        self.is_amnezia = self.check_amnezia()
-
-        self.is_vpn = self.is_openvpn or self.is_amnezia
-
         git_info = self.get_git_info()
 
         self.git_global_username = git_info['username']['global']
         self.git_local_username = git_info['username']['local']
 
-        self.npmrc = self.get_npmrc_info()
-
-
-    def check_openvpn(self):
-		status = $(nmcli con show --active | grep vpn).strip()
-		return len(status) > 0
-
-    def check_amnezia(self):
-		status = $(nmcli con show --active | grep amn0).strip()
-		return len(status) > 0
 
     def get_git_info(self):
         global_username = $(git config --global user.name).strip()
@@ -115,25 +100,6 @@ class Env:
                 "global": global_username,
                 "local": local_username,
             },
-        }
-
-    def get_npmrc_info(self):
-        default_npmrc = os.path.expanduser('~/.npmrc')
-        is_default_exists = os.path.exists(default_npmrc)
-
-        current_profile = ''
-
-        if is_default_exists:
-            with open(default_npmrc, 'r') as file:
-                file_contents = file.read()
-                match = re.search(r'### profile: (.*)', file_contents)
-                current_profile = match.group(1) if match else ''
-
-        is_current_profile = is_default_exists and current_profile != ''
-
-        return {
-            "current_profile": current_profile,
-            "is_current_profile": is_current_profile,
         }
 
     
