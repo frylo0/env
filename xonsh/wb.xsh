@@ -12,6 +12,7 @@ class WB:
         aliases['wb.vpn'] = lambda args: self.vpn()
         aliases['wb.git_repo_sign'] = lambda args: self.git_repo_sign()
         aliases['wb.dep'] = lambda args: self.dep(args)
+        aliases['wb.fix_mcp_oauth'] = 'socat TCP6-LISTEN:19876,bind=[::1],reuseaddr,fork TCP4:127.0.0.1:19876'
 
     def vpn(self):
         if (env.is_vpn):
