@@ -9,14 +9,19 @@ from core import env, Args, help
 
 class WB:
     def __init__(self):
-        aliases['wb.vpn'] = lambda args: self.vpn()
+        aliases['wb.vpn'] = lambda args: self.vpn(args[0])
         aliases['wb.git_repo_sign'] = lambda args: self.git_repo_sign()
         aliases['wb.dep'] = lambda args: self.dep(args)
         aliases['wb.fix_mcp_oauth'] = 'socat TCP6-LISTEN:19876,bind=[::1],reuseaddr,fork TCP4:127.0.0.1:19876'
 
-    def vpn(self):
-        if (env.is_vpn):
-            print('🛑 Another VPN is enabled, abort')
+    def vpn(self, enable):
+        if (enable == 'on'):
+            sudo systemctl start wb_vpn
+            sudo systemctl status wb_vpn
+            return
+        elif (enable == 'off'):
+            sudo systemctl stop wb_vpn
+            sudo systemctl status wb_vpn
             return
 
         try:
